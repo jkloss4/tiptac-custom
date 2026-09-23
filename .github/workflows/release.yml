@@ -1,0 +1,38 @@
+name: Release
+
+# Push a tag like v26.09.24 to build the addon zip and publish it as a GitHub release.
+# Addon managers that support GitHub releases (e.g. WowUp) install/update from this.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stamp version from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/^## Version:.*/## Version: ${VERSION}/" TipTac/TipTac.toc TipTacOptions/TipTacOptions.toc
+
+      - name: Package
+        run: |
+          ZIP="TipTac-Custom-${GITHUB_REF_NAME}.zip"
+          INTERFACE="$(grep -m1 '^## Interface:' TipTac/TipTac.toc | sed 's/## Interface: *//' | tr -d '\r')"
+          zip -r "$ZIP" TipTac TipTacOptions
+          cat > release.json <<JSON
+          {"releases":[{"filename":"$ZIP","nolib":false,"metadata":[{"flavor":"mainline","interface":$INTERFACE}]}]}
+          JSON
+          sed -i 's/^ *//' release.json
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "TipTac-Custom-${GITHUB_REF_NAME}.zip" release.json \
+            --title "$GITHUB_REF_NAME" --generate-notes
