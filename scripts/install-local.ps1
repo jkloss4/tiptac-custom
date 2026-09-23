@@ -15,3 +15,6 @@ foreach ($name in "TipTac", "TipTacOptions") {
   Write-Host "installed $name"
 }
 Write-Host "Done. In game: /reload"
+
+# robocopy exit codes 1-7 mean success; don't leak them as the script's exit code
+exit 0

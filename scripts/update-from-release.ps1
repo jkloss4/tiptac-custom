@@ -24,3 +24,6 @@ foreach ($name in "TipTac", "TipTacOptions") {
 }
 Write-Host "Installed $($zip.Name). In game: /reload"
 Remove-Item $tmp -Recurse -Force
+
+# robocopy exit codes 1-7 mean success; don't leak them as the script's exit code
+exit 0
