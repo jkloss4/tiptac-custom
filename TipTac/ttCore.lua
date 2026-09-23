@@ -3612,6 +3612,33 @@ LibFroznFunctions:RegisterForGroupEvents(MOD_NAME, {
 --                                           Anchoring                                            --
 ----------------------------------------------------------------------------------------------------
 
+-- refresh anchoring of shopping tooltips (e.g. "Equipped"/compare tooltips) for a tip.
+-- blizzard anchors these to TooltipComparisonManager.anchorFrame, which defaults to the tip's owner (e.g. a bag/bank slot button, or a unit frame) rather than to the tip itself.
+-- since TipTac may have re-anchored the tip away from that blizzard default position (e.g. via a custom "Frame Tip"/"World Tip" anchor), point them at the tip instead, every single time
+-- this is refreshed, so they stay next to the tip wherever it ends up instead of drifting back to the tip's owner whenever blizzard re-triggers its own comparison anchoring.
+function tt:RefreshAnchorShoppingTooltips(tip)
+	local forcedAnchorFrameToTip = false;
+
+	if (TooltipComparisonManager) and (TooltipComparisonManager.tooltip == tip) then -- since df 10.0.2
+		TooltipComparisonManager.anchorFrame = tip;
+		forcedAnchorFrameToTip = true;
+	end
+
+	LibFroznFunctions:RefreshAnchorShoppingTooltips(tip);
+
+	-- the underlying refresh always leaves a 10px gap below anchorFrame's top, meant as breathing room next to a small button (blizzard's usual anchorFrame).
+	-- since we forced anchorFrame to be the tip itself above, cancel that gap so the shopping tooltips' top borders sit flush with the tip's instead of 10px below it.
+	if (forcedAnchorFrameToTip) then
+		if (ShoppingTooltip1:IsShown()) then
+			ShoppingTooltip1:AdjustPointsOffset(0, 10);
+		end
+
+		if (ShoppingTooltip2:IsShown()) then
+			ShoppingTooltip2:AdjustPointsOffset(0, 10);
+		end
+	end
+end
+
 -- set anchor to tip
 function tt:SetAnchorToTip(tip)
 	-- check if insecure interaction with the tip is currently forbidden
@@ -3706,7 +3733,7 @@ function tt:SetAnchorToTip(tip)
 	end
 	
 	-- refresh anchoring of shopping tooltips after re-anchoring of tip to prevent overlapping tooltips
-	LibFroznFunctions:RefreshAnchorShoppingTooltips(tip);
+	tt:RefreshAnchorShoppingTooltips(tip);
 end
 
 -- anchor tip to mouse position
@@ -3770,7 +3797,7 @@ function tt:AnchorTipToMouse(tip)
 	end
 	
 	-- refresh anchoring of shopping tooltips after re-anchoring of tip to prevent overlapping tooltips
-	LibFroznFunctions:RefreshAnchorShoppingTooltips(tip);
+	tt:RefreshAnchorShoppingTooltips(tip);
 end
 
 -- get anchor position
@@ -4015,21 +4042,31 @@ LibFroznFunctions:RegisterForGroupEvents(MOD_NAME, {
 		-- refreshing anchoring of shopping tooltips after re-anchoring of tip to prevent overlapping tooltips,
 		-- because after GameTooltip_ShowCompareItem() (see hook for TooltipComparisonManager:AnchorShoppingTooltips() or GameTooltip_AnchorComparisonTooltips() below) has been called within TooltipDataRules.FinalizeItemTooltip(), the tooltip isn't finished yet, e.g. if hovering over monthly activities reward button.
 		-- so the tooltip may change in size after finishing the remaining TooltipDataHandler calls/callbacks and TipTac's own OnTipSetStyling to finalize the tooltip.
-		LibFroznFunctions:RefreshAnchorShoppingTooltips(tip);
+		tt:RefreshAnchorShoppingTooltips(tip);
 	end,
 	OnTipRescaled = function(self, TT_CacheForFrames, tip, currentDisplayParams)
 		-- reapply anchor tip to mouse position
 		tt:AnchorTipToMouse(tip);
 		
 		-- refresh anchoring of shopping tooltips after re-anchoring of tip to prevent overlapping tooltips
-		LibFroznFunctions:RefreshAnchorShoppingTooltips(tip);
+		tt:RefreshAnchorShoppingTooltips(tip);
 	end,
 	OnApplyTipAppearanceAndHooking = function(self, TT_CacheForFrames, configDb, cfg, TT_ExtendedConfig)
 		-- HOOK: GameTooltip_SetDefaultAnchor() for re-anchoring
 		hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tip, parent)
 			tt:SetDefaultAnchorHook(tip, parent);
 		end);
-		
+
+		-- HOOK: GameTooltip:SetBagItem() for re-anchoring bag/bank item tooltips.
+		-- blizzard doesn't call GameTooltip_SetDefaultAnchor() for these (the container item buttons call GameTooltip:SetOwner() with a fixed anchor, e.g. "ANCHOR_LEFT", directly instead),
+		-- so without this hook, the tip's anchor type/point (e.g. "Frame Tip") would never be applied to bag/bank item tooltips.
+		hooksecurefunc(GameTooltip, "SetBagItem", function(tip)
+			tt:SetDefaultAnchorHook(tip, tip:GetOwner());
+
+			-- refresh anchoring of shopping tooltips (e.g. "Equipped" comparison tooltip) after re-anchoring of tip to prevent them from staying at the tip's old (blizzard default) position
+			tt:RefreshAnchorShoppingTooltips(tip);
+		end);
+
 		-- HOOK: TooltipComparisonManager:AnchorShoppingTooltips() or GameTooltip_AnchorComparisonTooltips() (called within GameTooltip_ShowCompareItem()) to refresh anchoring of shopping tooltips after re-anchoring of tip to prevent overlapping tooltips
 		if (GameTooltip_AnchorComparisonTooltips) then -- before df 10.0.2
 			hooksecurefunc("GameTooltip_AnchorComparisonTooltips", function(self, anchorFrame, shoppingTooltip1, shoppingTooltip2, primaryItemShown, secondaryItemShown)
@@ -4037,14 +4074,14 @@ LibFroznFunctions:RegisterForGroupEvents(MOD_NAME, {
 				shoppingTooltip1:SetCompareItem(shoppingTooltip2, self);
 				
 				-- refresh anchoring of shopping tooltips after re-anchoring of tip to prevent overlapping tooltips
-				LibFroznFunctions:RefreshAnchorShoppingTooltips(self);
+				tt:RefreshAnchorShoppingTooltips(self);
 			end);
 		else -- since df 10.0.2
 			hooksecurefunc(TooltipComparisonManager, "AnchorShoppingTooltips", function(self, primaryShown, secondaryShown)
-				-- refresh anchoring of shopping tooltips after re-anchoring of tip to prevent overlapping tooltips
 				local tip = self.tooltip;
-				
-				LibFroznFunctions:RefreshAnchorShoppingTooltips(tip);
+
+				-- refresh anchoring of shopping tooltips after re-anchoring of tip to prevent overlapping tooltips
+				tt:RefreshAnchorShoppingTooltips(tip);
 			end);
 		end
 	end,

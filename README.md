@@ -19,6 +19,18 @@ of World Unit, World Tip, Frame Unit and Frame Tip. Each pair of sliders sits un
 
 The old global `mouseOffsetX/Y` saved values are no longer read, so previously set offsets reset to 0.
 
+**Frame Tip anchor now applies to bag/bank item tooltips, with correct comparison-tooltip alignment.** Blizzard's container item
+buttons (bags, bank, reagent bank) never call `GameTooltip_SetDefaultAnchor()` — they set a fixed `GameTooltip:SetOwner(self,
+"ANCHOR_LEFT")` position directly — so the Frame Tip anchor type/point previously had no effect while hovering an item in your
+bags. It now does. This also fixes a related, more general bug: whenever a comparison ("Equipped"/shopping) tooltip is shown
+alongside a tooltip using a custom (non-mouse) anchor, the comparison tooltip used to stay anchored near the tip's original
+owner/position instead of following the tip to its new location, and even once pointed at the right frame, a builtin 10px gap
+(sized for sitting next to a small button) showed up as a visible seam between the two tooltips. Both are now corrected.
+
+| File | Change |
+| --- | --- |
+| `TipTac/ttCore.lua` | New `tt:RefreshAnchorShoppingTooltips(tip)` wrapper (replaces direct calls to `LibFroznFunctions:RefreshAnchorShoppingTooltips`) forces `TooltipComparisonManager.anchorFrame` to the tip itself instead of Blizzard's default (the tip's owner), and cancels the resulting 10px offset via `AdjustPointsOffset` so tooltip tops sit flush. New `hooksecurefunc(GameTooltip, "SetBagItem", ...)` re-anchors bag/bank item tooltips the same way the default-anchor hook does for other tooltips. |
+
 ## Usage note
 
 With "Enable TipTac unit tip appearance" turned off, the default tooltip look is kept and only the anchoring applies.
