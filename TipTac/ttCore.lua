@@ -416,7 +416,10 @@ local TT_DefaultConfig = {
 	hideTipsExpBarTips = false,
 	
 	hideTipsEJDungeonRaidSetItemsSTT = false,
-	
+
+	hideTipsForOwnPets = false,
+	hideTipsForOwnCompanions = false,
+
 	showHiddenModifierKey = "shift",
 	
 	-- hyperlink
@@ -4552,6 +4555,58 @@ LibFroznFunctions:RegisterForGroupEvents(MOD_NAME, {
 }, MOD_NAME .. " - Hide World Tips Instantly");
 
 ----------------------------------------------------------------------------------------------------
+--                                  Own Pet/Minion Detection                                      --
+----------------------------------------------------------------------------------------------------
+
+-- UnitIsOwnedByUnit() isn't available on this client (neither as a plain global nor under C_PlayerInfo, confirmed nil on the
+-- running client), and tracking summoned guids ourselves via COMBAT_LOG_EVENT_UNFILTERED got TipTac blocked from a protected
+-- action immediately on load, so none of this keeps any state at all: it only looks at whatever's live on the tip you're
+-- currently hovering.
+--
+-- anything without its own unit token (a hunter's 2nd Beast Mastery pet, a summoned non-combat companion, etc.) is recognized
+-- from blizzard's own tooltip text, which names the owner on one of the tip's first few lines (e.g. "Diramara's Pet" for a
+-- combat pet/minion, "Diramara's Companion" for a non-combat companion pet).
+local function DoesTooltipLineNamePlayerAs(tip, suffix)
+	if (not tip) or (tip:IsForbidden()) then
+		return false;
+	end
+
+	local playerName = UnitName("player");
+
+	if (not playerName) then
+		return false;
+	end
+
+	local search = playerName .. suffix;
+
+	for lineIndex = 2, 4 do
+		local line = LibFroznFunctions:GetLineFromGameTooltip(tip, lineIndex);
+		local text = line and line:GetText();
+
+		if (text) and (not LibFroznFunctions:IsSecretValue(text)) and (text:find(search, 1, true)) then
+			return true;
+		end
+	end
+
+	return false;
+end
+
+-- check if a unit is one of the player's own combat pets/minions (e.g. hunter pets, warlock demons, death knight ghouls).
+-- the player's single primary combat pet has its own unit token ("pet") and is checked directly; anything else falls back to the tooltip text.
+function tt:IsUnitMyPetOrMinion(unitID, tip)
+	if (UnitIsUnit(unitID, "pet")) then
+		return true;
+	end
+
+	return DoesTooltipLineNamePlayerAs(tip, "'s Pet");
+end
+
+-- check if a unit is one of the player's own non-combat companion pets (vanity pets)
+function tt:IsUnitMyCompanion(unitID, tip)
+	return DoesTooltipLineNamePlayerAs(tip, "'s Companion");
+end
+
+----------------------------------------------------------------------------------------------------
 --                                           Hide Tips                                            --
 ----------------------------------------------------------------------------------------------------
 
@@ -4614,7 +4669,27 @@ LibFroznFunctions:RegisterForGroupEvents(MOD_NAME, {
 		if (cfg.showHiddenModifierKey == "alt") and (IsAltKeyDown()) then
 			return;
 		end
-		
+
+		-- hide tips for own pets/minions (e.g. hunter pets, warlock demons, death knight ghouls, and other combat minions owned/summoned by the player)
+		if (cfg.hideTipsForOwnPets) and (tipContent == TT_TIP_CONTENT.unit) then
+			local unitRecord = currentDisplayParams.unitRecord;
+
+			if (unitRecord) and (unitRecord ~= LFF_UNIT_RECORD.SecretValue) and (UnitExists(unitRecord.id)) and (tt:IsUnitMyPetOrMinion(unitRecord.id, tip)) then
+				currentDisplayParams.hideTip = true;
+				return;
+			end
+		end
+
+		-- hide tips for own non-combat companion pets (vanity pets)
+		if (cfg.hideTipsForOwnCompanions) and (tipContent == TT_TIP_CONTENT.unit) then
+			local unitRecord = currentDisplayParams.unitRecord;
+
+			if (unitRecord) and (unitRecord ~= LFF_UNIT_RECORD.SecretValue) and (UnitExists(unitRecord.id)) and (tt:IsUnitMyCompanion(unitRecord.id, tip)) then
+				currentDisplayParams.hideTip = true;
+				return;
+			end
+		end
+
 		-- consider hiding tips during challenge mode, instance, during skyriding or in combat
 		local hidingTip = "";
 		

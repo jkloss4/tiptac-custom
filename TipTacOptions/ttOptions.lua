@@ -506,11 +506,14 @@ tinsert(ttOptionsHiding, { type = "Check", var = "hideTipsItemTips", label = "Hi
 tinsert(ttOptionsHiding, { type = "Check", var = "hideTipsActionTips", label = "Hide Action Bar Tips", tip = "When you have this option checked, Action Bar Tips will be hidden.", belongsTo = "hideTipsHeader" });
 tinsert(ttOptionsHiding, { type = "Check", var = "hideTipsExpBarTips", label = "Hide Exp Bar Tips", tip = "When you have this option checked, Experience Bar Tips will be hidden.", x = 160, belongsTo = "hideTipsActionTips" });
 
-if (LibFroznFunctions:IsAddOnEnabled("Blizzard_EncounterJournal")) then
-	tinsert(ttOptionsHiding, { type = "Header", label = "Hide Other Tips" });
+tinsert(ttOptionsHiding, { type = "Header", label = "Hide Other Tips" });
 
+if (LibFroznFunctions:IsAddOnEnabled("Blizzard_EncounterJournal")) then
 	tinsert(ttOptionsHiding, { type = "Check", var = "hideTipsEJDungeonRaidSetItemsSTT", label = "Hide Shopping Tips of Dungeon/Raid/Set Items\nin Adventure Guide", tip = "When you have this option checked, Shopping Tips of Dungeon/Raid/Set Items in Adventure Guide will be hidden." });
 end
+
+tinsert(ttOptionsHiding, { type = "Check", var = "hideTipsForOwnPets", label = "Hide Tips for My Own Pets/Minions", tip = "When you have this option checked, unit tooltips will be hidden for your own combat pets/minions (e.g. hunter pets including a 2nd Beast Mastery pet, warlock demons, death knight ghouls, mage water elementals). Pets/minions owned by other players are not affected." });
+tinsert(ttOptionsHiding, { type = "Check", var = "hideTipsForOwnCompanions", label = "Hide Tips for My Own Companion Pets", tip = "When you have this option checked, unit tooltips will be hidden for your own summoned non-combat companion (vanity) pets. Companion pets owned by other players are not affected." });
 
 tinsert(ttOptionsHiding, { type = "Header", label = "Others" });
 
