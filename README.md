@@ -54,7 +54,7 @@ removed from the TOCs on purpose, so managers won't replace this with upstream T
 
 - Test local changes: `.\scripts\install-local.ps1` copies the two addon folders into `AddOns`, then `/reload`.
 - After a WoW patch: bump `## Interface:` in both `.toc` files.
-- Release: `git tag v26.09.24 && git push --tags`. The [Release workflow](.github/workflows/release.yml) stamps the
+- Release: `git tag v1.0.1 && git push --tags` (semantic versioning: major.minor.patch). The [Release workflow](.github/workflows/release.yml) stamps the
   version into the TOCs, builds the zip (with a `release.json` so addon managers see it's a retail build), and
   publishes the GitHub release.
 

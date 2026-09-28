@@ -1,6 +1,6 @@
 name: Release
 
-# Push a tag like v26.09.24 to build the addon zip and publish it as a GitHub release.
+# Push a tag like v1.0.1 (semantic versioning) to build the addon zip and publish it as a GitHub release.
 # Addon managers that support GitHub releases (e.g. WowUp) install/update from this.
 on:
   push:
