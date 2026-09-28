@@ -1311,12 +1311,17 @@ function tt:SetAnchorToTip(tip)
 		end
 	end
 	
+	-- the configured offset (per anchor frame: WorldUnit, WorldTip, FrameUnit, FrameTip) applies to every anchor type, not just "mouse"
+	local configOffsetX, configOffsetY = tt:GetAnchorOffset(anchorFrameName);
+	
 	local function anchorFn(anchorPoint, mirrorAnchorPoint, anchorFrame, targetFrame, referenceFrame)
 		local offsetX, offsetY = LibFroznFunctions:GetOffsetsForAnchorPoint(anchorPoint, anchorFrame, targetFrame, referenceFrame);
 		
 		if (not offsetX) or (not offsetY) then
 			return false;
 		end
+		
+		offsetX, offsetY = offsetX + configOffsetX, offsetY + configOffsetY;
 		
 		targetFrame:ClearAllPoints();
 		
@@ -1356,6 +1361,13 @@ function tt:SetAnchorToTip(tip)
 	
 	-- refresh anchoring of shopping tooltips after re-anchoring of tip to prevent overlapping tooltips
 	tt:RefreshAnchorShoppingTooltips(tip);
+end
+
+-- get the configured offset for an anchor frame (WorldUnit, WorldTip, FrameUnit, FrameTip), applied to every anchor type.
+-- the config keys keep their original "mouseOffset" names, from when the offset only applied to the "mouse" anchor type, so saved values carry over.
+function tt:GetAnchorOffset(anchorFrameName)
+	local offsetVar = "mouseOffset" .. (anchorFrameName or "FrameTip");
+	return cfg[offsetVar .. "X"] or 0, cfg[offsetVar .. "Y"] or 0;
 end
 
 -- anchor tip to mouse position
@@ -1410,12 +1422,10 @@ function tt:AnchorTipToMouse(tip)
 	if (anchorType == "mouse") then
 		local x, y = LibFroznFunctions:GetCursorPosition();
 
-		-- mouse offset is configured per anchor frame (WorldUnit, WorldTip, FrameUnit, FrameTip)
-		local mouseOffsetVar = "mouseOffset" .. (anchorFrameName or "FrameTip");
-		local mouseOffsetX, mouseOffsetY = cfg[mouseOffsetVar .. "X"] or 0, cfg[mouseOffsetVar .. "Y"] or 0;
+		local offsetX, offsetY = self:GetAnchorOffset(anchorFrameName);
 
 		tip:ClearAllPoints();
-		tip:SetPoint(anchorPoint, UIParent, "BOTTOMLEFT", self:GetNearestPixelSize(tip, x + mouseOffsetX, false, true), self:GetNearestPixelSize(tip, y + mouseOffsetY, false, true));
+		tip:SetPoint(anchorPoint, UIParent, "BOTTOMLEFT", self:GetNearestPixelSize(tip, x + offsetX, false, true), self:GetNearestPixelSize(tip, y + offsetY, false, true));
 	end
 	
 	-- refresh anchoring of shopping tooltips after re-anchoring of tip to prevent overlapping tooltips

@@ -41,31 +41,31 @@ local options = {};
 local option;
 
 -- Anchors
--- mouse offset slider for the given anchor frame ("WorldUnit", "WorldTip", "FrameUnit", "FrameTip") and axis ("X", "Y")
-local function GetMouseOffsetOption(anchorFrameName, axis)
-	return { type = "Slider", var = "mouseOffset" .. anchorFrameName .. axis, label = "Mouse " .. axis .. " Offset", tip = "Offset from the mouse cursor when the anchor type is \"mouse\"", min = -200, max = 200, step = 1, fontSizeDelta = -2, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end };
+-- offset slider for the given anchor frame ("WorldUnit", "WorldTip", "FrameUnit", "FrameTip") and axis ("X", "Y")
+local function GetOffsetOption(anchorFrameName, axis)
+	return { type = "Slider", var = "mouseOffset" .. anchorFrameName .. axis, label = axis .. " Offset", tip = "Offset of the tooltip from its anchor position, for any anchor type", min = -200, max = 200, step = 1, fontSizeDelta = -2, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end };
 end
 
 local ttOptionsAnchors = {
 	{ type = "DropDown", var = "anchorWorldUnitType", label = "World Unit Type", list = DROPDOWN_ANCHORTYPE, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end },
 	{ type = "DropDown", var = "anchorWorldUnitPoint", label = "World Unit Point", list = DROPDOWN_ANCHORPOS, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end },
-	GetMouseOffsetOption("WorldUnit", "X"),
-	GetMouseOffsetOption("WorldUnit", "Y"),
+	GetOffsetOption("WorldUnit", "X"),
+	GetOffsetOption("WorldUnit", "Y"),
 
 	{ type = "DropDown", var = "anchorWorldTipType", label = "World Tip Type", list = DROPDOWN_ANCHORTYPE, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end, y = 10 },
 	{ type = "DropDown", var = "anchorWorldTipPoint", label = "World Tip Point", list = DROPDOWN_ANCHORPOS, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end },
-	GetMouseOffsetOption("WorldTip", "X"),
-	GetMouseOffsetOption("WorldTip", "Y"),
+	GetOffsetOption("WorldTip", "X"),
+	GetOffsetOption("WorldTip", "Y"),
 
 	{ type = "DropDown", var = "anchorFrameUnitType", label = "Frame Unit Type", list = DROPDOWN_ANCHORTYPE, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end, y = 10 },
 	{ type = "DropDown", var = "anchorFrameUnitPoint", label = "Frame Unit Point", list = DROPDOWN_ANCHORPOS, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end },
-	GetMouseOffsetOption("FrameUnit", "X"),
-	GetMouseOffsetOption("FrameUnit", "Y"),
+	GetOffsetOption("FrameUnit", "X"),
+	GetOffsetOption("FrameUnit", "Y"),
 
 	{ type = "DropDown", var = "anchorFrameTipType", label = "Frame Tip Type", list = DROPDOWN_ANCHORTYPE, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end, y = 10 },
 	{ type = "DropDown", var = "anchorFrameTipPoint", label = "Frame Tip Point", list = DROPDOWN_ANCHORPOS, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end },
-	GetMouseOffsetOption("FrameTip", "X"),
-	GetMouseOffsetOption("FrameTip", "Y")
+	GetOffsetOption("FrameTip", "X"),
+	GetOffsetOption("FrameTip", "Y")
 };
 
 local priority = 0;

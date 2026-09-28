@@ -16,7 +16,8 @@ Retail only (Interface 120100). The addon folders keep the original names, `TipT
 
 **Anchors** (`/tip` → Anchors)
 - Normal, Mouse or Parent anchor for each of: World Unit, World Tip, Frame Unit, Frame Tip.
-- Separate mouse-anchor X/Y offset per anchor type.
+- Separate X/Y offset for each of World Unit, World Tip, Frame Unit and Frame Tip, applied whichever anchor
+  (Normal, Mouse or Parent) is selected.
 - Anchor overrides while in combat, in an instance, in Mythic+, or skyriding.
 - Bag/bank item tooltips follow the Frame Tip anchor, and the "Equipped" comparison tooltips stay aligned with them.
 - Movable anchor frame for the Normal anchor (`/tip anchor`).
@@ -60,8 +61,8 @@ removed from the TOCs on purpose, so managers won't replace this with upstream T
 ## Credits and license
 
 TipTac was created by **Aezay** and continued as **TipTac Reborn** by **Frozn45**. This fork removes features and adds
-the per-anchor mouse offsets, bag/bank item anchoring, comparison-tooltip alignment fix, own pet/companion hiding
-and the options trimmed to the three pages above.
+the per-anchor offsets (for every anchor type), bag/bank item anchoring, comparison-tooltip alignment fix, own
+pet/companion hiding and the options trimmed to the three pages above.
 
 Licensed under the **GNU General Public License v3.0**, the same license as the upstream repository
 ([`LICENSE`](LICENSE), also included in each addon folder). Bundled libraries (Ace3, LibStub, CallbackHandler,
