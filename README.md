@@ -9,7 +9,7 @@ A stripped-down personal fork of [TipTac Reborn](https://github.com/frozn/TipTac
 Everything else in TipTac (unit tip styling, health/power bars, auras, icons, colors, fonts, backdrop, scaling,
 chat-link hover tips, layouts/profiles, minimap icon, ...) has been removed. Tooltips keep the default Blizzard look.
 
-Retail only (Interface 120100). The addon folders keep the original names, `TipTac` and `TipTacOptions`, so this
+Retail (Interface 120100) and WoW: Forever (Interface 16001). The addon folders keep the original names, `TipTac` and `TipTacOptions`, so this
 **replaces** the upstream TipTac (don't install both) and your existing `TipTac_Config` settings carry over.
 
 ## Features
@@ -38,7 +38,7 @@ Slash commands: `/tip` (options), `/tip anchor` (show/hide the anchor frame), `/
 ## Install
 
 Download `TipTac-Custom-<version>.zip` from the [latest release](../../releases/latest) and extract the `TipTac`
-and `TipTacOptions` folders into `World of Warcraft\_retail_\Interface\AddOns\`.
+and `TipTacOptions` folders into `World of Warcraft\_retail_\Interface\AddOns\` (for WoW: Forever, `_classic_beta_` instead of `_retail_`).
 
 To update from the command line (works for a private repo, needs `gh auth login` once):
 
@@ -56,7 +56,7 @@ removed from the TOCs on purpose, so managers won't replace this with upstream T
 - After a WoW patch: bump `## Interface:` in both `.toc` files.
 - Release: `git tag v1.0.1 && git push --tags` (semantic versioning: major.minor.patch). The
   [Release workflow](.github/workflows/release.yml) stamps the version into the TOCs, builds the zip (with a
-  `release.json` so addon managers see it's a retail build), and publishes the GitHub release.
+  `release.json` so addon managers see it's a retail and Forever build), and publishes the GitHub release.
 
 ## Credits and license
 
