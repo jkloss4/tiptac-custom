@@ -7,7 +7,7 @@
 -- create addon
 local ADDON_FOLDER, ns = ...; -- folder "TooltipAnchors": for load events and its metadata
 local MOD_NAME = "TipTac"; -- the internal name: global frame, event groups and the options addon's lookup
-local DISPLAY_NAME = "Tooltip Anchors"; -- the name shown in game (the folder, frame and saved variables keep "TipTac")
+local DISPLAY_NAME = "Tooltip Anchors"; -- the name shown in game (the frame, event groups and saved variables keep "TipTac")
 local tt = CreateFrame("Frame", MOD_NAME, UIParent, BackdropTemplateMixin and "BackdropTemplate");
 tt:Hide();
 
