@@ -250,7 +250,7 @@ TT_ExtendedConfig.defaultAnchorPoint = "BOTTOMRIGHT";
 --
 -- hint: determined frames will be added to TT_CacheForFrames with key as resolved real frame. The params will be added under ".config", the frame name under ".frameName".
 TT_ExtendedConfig.tipsToModify = {
-	[MOD_NAME] = {
+	[ADDON_FOLDER] = { -- keyed by the addon that has to finish loading first: this one (its folder name)
 		frames = {
 			["GameTooltip"] = { applyAnchor = true },
 			["ShoppingTooltip1"] = { applyAnchor = false },
