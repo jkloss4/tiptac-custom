@@ -611,27 +611,6 @@ function tt:ToggleOptions()
 	end
 end
 
--- addon compartment
-function tt:SetAddonCompartmentText(tip)
-	tip:SetText(MOD_NAME);
-	tip:AddLine(TT_COLOR.text.default:WrapTextInColorCode("Click to toggle options"));
-end
-
-function TipTac_OnAddonCompartmentClick(addonName, mouseButton)
-	-- toggle options
-	tt:ToggleOptions();
-end
-
-function TipTac_OnAddonCompartmentEnter(addonName, button)
-    GameTooltip:SetOwner(button, "ANCHOR_LEFT");
-	tt:SetAddonCompartmentText(GameTooltip);
-	GameTooltip:Show();
-end
-
-function TipTac_OnAddonCompartmentLeave(addonName, button)
-	GameTooltip:Hide();
-end
-
 -- register new slash commands
 LibFroznFunctions:RegisterNewSlashCommands(MOD_NAME, { "/tip", "/tiptac" }, function(msg)
 	-- extract parameters

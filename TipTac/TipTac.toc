@@ -6,9 +6,6 @@
 ## Notes: Tooltip anchoring, fading and hiding. Stripped-down fork of TipTac Reborn.
 ## Category-enUS: User Interface
 ## SavedVariables: TipTac_Config
-## AddonCompartmentFunc: TipTac_OnAddonCompartmentClick
-## AddonCompartmentFuncOnEnter: TipTac_OnAddonCompartmentEnter
-## AddonCompartmentFuncOnLeave: TipTac_OnAddonCompartmentLeave
 ## X-Category: Tooltip
 ## X-Website: https://github.com/jkloss4/tiptac-custom
 ## X-License: GPL-3.0
