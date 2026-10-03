@@ -738,6 +738,12 @@ for index, category in ipairs(options) do
 	scroll:SetPoint("TOPLEFT", 4, -6);
 	scroll:SetPoint("BOTTOMRIGHT", -26, 6);
 	scroll:Hide();
+	-- the template places its scroll bar closer to the top of the pane than the bottom; inset it equally instead
+	if (scroll.ScrollBar) then
+		scroll.ScrollBar:ClearAllPoints();
+		scroll.ScrollBar:SetPoint("TOPRIGHT", pane, "TOPRIGHT", -8, -8);
+		scroll.ScrollBar:SetPoint("BOTTOMRIGHT", pane, "BOTTOMRIGHT", -8, 8);
+	end
 	local content = CreateFrame("Frame", nil, scroll);
 	content:SetSize(1, 1);
 	content.rows = {};
