@@ -586,9 +586,10 @@ local function AddText(option)
 	text:SetText(option.label);
 end
 
--- a thin line between groups of options
+-- a thin line between groups of options, centered in its row; the row has the same 4px gap above it that the
+-- next row has, so the line sits evenly between the rows around it
 local function AddSeparator(option)
-	local row = NewRow(1, 12 + (option.y or 0));
+	local row = NewRow(20, 4 + (option.y or 0));
 	local line = row:CreateTexture(nil, "ARTWORK");
 	line:SetColorTexture(1, 1, 1, 0.15);
 	line:SetPoint("LEFT", 0, 0);
