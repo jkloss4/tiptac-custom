@@ -5,7 +5,8 @@
 --
 
 -- create addon
-local MOD_NAME = ...;
+local ADDON_FOLDER, ns = ...; -- folder "TooltipAnchors": for load events and its metadata
+local MOD_NAME = "TipTac"; -- the internal name: global frame, event groups and the options addon's lookup
 local DISPLAY_NAME = "Tooltip Anchors"; -- the name shown in game (the folder, frame and saved variables keep "TipTac")
 local tt = CreateFrame("Frame", MOD_NAME, UIParent, BackdropTemplateMixin and "BackdropTemplate");
 tt:Hide();
@@ -519,7 +520,7 @@ function tt:ADDON_LOADED(event, addOnName, containsBindings)
 	end
 	
 	-- not this addon
-	if (addOnName ~= MOD_NAME) then
+	if (addOnName ~= ADDON_FOLDER) then
 		return;
 	end
 	
@@ -596,19 +597,12 @@ tt:RegisterEvent("PLAYER_LOGIN");
 --                                       Interface Options                                        --
 ----------------------------------------------------------------------------------------------------
 
--- toggle options: TipTacOptions registers the TipTac page in Options > AddOns at login
+-- toggle options: ttOptions.lua registers the page in Options > AddOns once the config has loaded
 function tt:ToggleOptions()
-	local addOnName = MOD_NAME .. "Options";
-	local loaded, reason = C_AddOns.LoadAddOn(addOnName);
-	
-	if (loaded) then
-		if (SettingsPanel) and (SettingsPanel:IsShown()) then
-			HideUIPanel(SettingsPanel);
-		else
-			_G[addOnName]:Open();
-		end
+	if (SettingsPanel) and (SettingsPanel:IsShown()) then
+		HideUIPanel(SettingsPanel);
 	else
-		tt:AddMessageToChatFrame("{caption:" .. DISPLAY_NAME .. "}: {error:Couldn't open " .. DISPLAY_NAME .. " Options: [{highlight:" .. _G["ADDON_" .. reason] .. "}]. Please make sure the addon is enabled in the character selection screen.}"); -- see UIParentLoadAddOn()
+		ns.OpenOptions();
 	end
 end
 
@@ -643,11 +637,11 @@ LibFroznFunctions:RegisterNewSlashCommands(MOD_NAME, { "/tip", "/tiptac" }, func
 	
 	-- invalid command
 	local versionWoW, build = GetBuildInfo();
-	local versionTipTac = C_AddOns.GetAddOnMetadata(MOD_NAME, "Version");
+	local versionTipTac = C_AddOns.GetAddOnMetadata(ADDON_FOLDER, "Version");
 	
 	UpdateAddOnMemoryUsage();
 	
-	tt:AddMessageToChatFrame("----- {highlight:%s %s} ----- {highlight:%.2f kb} ----- {highlight:WoW " .. versionWoW .. "} ----- ", MOD_NAME, versionTipTac, GetAddOnMemoryUsage(MOD_NAME));
+	tt:AddMessageToChatFrame("----- {highlight:%s %s} ----- {highlight:%.2f kb} ----- {highlight:WoW " .. versionWoW .. "} ----- ", MOD_NAME, versionTipTac, GetAddOnMemoryUsage(ADDON_FOLDER));
 	tt:AddMessageToChatFrame("The following {highlight:parameters} are valid for this addon:");
 	tt:AddMessageToChatFrame("  {highlight:anchor} = Shows the anchor where the tooltip appears");
 	tt:AddMessageToChatFrame("  {highlight:reset} = Resets all settings back to their default values");

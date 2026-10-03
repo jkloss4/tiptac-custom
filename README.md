@@ -9,8 +9,9 @@ A stripped-down personal fork of [TipTac Reborn](https://github.com/frozn/TipTac
 Everything else in TipTac (unit tip styling, health/power bars, auras, icons, colors, fonts, backdrop, scaling,
 chat-link hover tips, layouts/profiles, minimap icon, ...) has been removed. Tooltips keep the default Blizzard look.
 
-Retail (Interface 120100) and WoW: Forever (Interface 16001). The addon folders keep the original names, `TipTac` and `TipTacOptions`, so this
-**replaces** the upstream TipTac (don't install both) and your existing `TipTac_Config` settings carry over.
+Retail (Interface 120100) and WoW: Forever (Interface 16001). One addon folder, `TooltipAnchors`, with the options
+page built in (upstream's separate `TipTacOptions` addon is gone). It keeps upstream's `TipTac_Config` saved variable
+and `TipTac` global, so don't install it alongside upstream TipTac.
 
 ## Features
 
@@ -37,8 +38,9 @@ Slash commands: `/tip` (options), `/tip anchor` (show/hide the anchor frame), `/
 
 ## Install
 
-Download `TipTac-Custom-<version>.zip` from the [latest release](../../releases/latest) and extract the `TipTac`
-and `TipTacOptions` folders into `World of Warcraft\_retail_\Interface\AddOns\` (for WoW: Forever, `_classic_beta_` instead of `_retail_`).
+Download `TooltipAnchors-<version>.zip` from the [latest release](../../releases/latest) and extract the
+`TooltipAnchors` folder into `World of Warcraft\_retail_\Interface\AddOns\` (for WoW: Forever, `_classic_beta_` instead
+of `_retail_`).
 
 To update from the command line (works for a private repo, needs `gh auth login` once):
 

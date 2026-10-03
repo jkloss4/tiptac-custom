@@ -13,4 +13,4 @@ jobs:
       - uses: actions/checkout@v4
       - uses: lunarmodules/luacheck@v1
         with:
-          args: TipTac/ttCore.lua TipTacOptions/SettingsKit.lua TipTacOptions/ttOptions.lua --only 011 --no-color
+          args: TooltipAnchors/ttCore.lua TooltipAnchors/SettingsKit.lua TooltipAnchors/ttOptions.lua --only 011 --no-color

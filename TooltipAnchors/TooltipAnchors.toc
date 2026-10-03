@@ -1,13 +1,13 @@
 ## Interface: 120100, 16001
 ## Version: 1.0.0
-## IconTexture: Interface\AddOns\TipTac\media\tiptac_logo
+## IconTexture: Interface\AddOns\TooltipAnchors\media\tiptac_logo
 ## Title: Tooltip Anchors
 ## Author: Frozn45, Aezay (Earthen Ring EU); modified by jkloss4
 ## Notes: Tooltip anchoring, fading and hiding. Options: /tip. Stripped-down fork of TipTac Reborn.
 ## Category-enUS: User Interface
 ## SavedVariables: TipTac_Config
 ## X-Category: Tooltip
-## X-Website: https://github.com/jkloss4/tiptac-custom
+## X-Website: https://github.com/jkloss4/tooltip-anchors
 ## X-License: GPL-3.0
 
 # embeds
@@ -15,3 +15,7 @@ embeds.xml
 
 # core
 ttCore.lua
+
+# options page
+SettingsKit.lua
+ttOptions.lua

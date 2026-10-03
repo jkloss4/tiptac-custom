@@ -1,15 +1,14 @@
--- create addon
-local MOD_NAME, ns = ...;
-local PARENT_MOD_NAME = "TipTac";
+-- Options page, part of the main addon (it used to be the separate TipTacOptions addon). The page is drawn by
+-- SettingsKit (see the end of this file) once ttCore has loaded the saved config.
+local _, ns = ...;
+local PARENT_MOD_NAME = "TipTac"; -- ttCore's internal name: its global frame and event group
 local DISPLAY_NAME = "Tooltip Anchors"; -- the name shown in game
--- The options page is drawn by SettingsKit (see the end of this file); this frame is TipTacOptions' global, used to open it.
-local f = CreateFrame("Frame", MOD_NAME);
 
 -- get libs
 local LibFroznFunctions = LibStub:GetLibrary("LibFroznFunctions-1.0");
 
--- set config
-local configDb, cfg = LibFroznFunctions:CreateDbWithLibAceDB("TipTac_Config");
+-- config: handed over by ttCore's OnConfigLoaded event (the saved variables aren't loaded yet when this file runs)
+local configDb, cfg;
 
 -- DropDown Lists: { label, value } in display order
 local DROPDOWN_ANCHORTYPE = {
@@ -390,62 +389,75 @@ local function ResetAll()
 	TipTac:ApplyConfig();
 end
 
--- collapsed "Priority #" sections are remembered in TipTac's config
-cfg.optionsCollapsed = cfg.optionsCollapsed or {};
-Kit.collapsed = cfg.optionsCollapsed;
+-- Built once ttCore hands over the saved config: the collapsed "Priority #" sections are read while building
+local page;
+local function BuildPage()
+	-- collapsed "Priority #" sections are remembered in TipTac's config
+	cfg.optionsCollapsed = cfg.optionsCollapsed or {};
+	Kit.collapsed = cfg.optionsCollapsed;
 
-local page = Kit.NewPage(DISPLAY_NAME, { onDefaults = ResetAll });
+	page = Kit.NewPage(DISPLAY_NAME, { onDefaults = ResetAll });
 
-local tabNames = {};
-for index, category in ipairs(options) do
-	tabNames[index] = category.category;
-end
-local lists = page:Tabs(tabNames);
-
-for index, category in ipairs(options) do
-	local list = lists[index];
-
-	-- category-wide switch (e.g. Anchors) and the anchor's position button
-	if (category.enabled) then
-		local option = category.enabled;
-		list:Checkbox(option.label or ("Enable " .. category.category), function() return cfg[option.var]; end,
-			function(value) SetConfigValue(option.var, value); end, option.tip);
+	local tabNames = {};
+	for index, category in ipairs(options) do
+		tabNames[index] = category.category;
 	end
-	if (category.category == "Anchors") then
-		list:Button("Toggle Anchor", function() TipTac:SetShown(not TipTac:IsShown()); end,
-			"Show or hide the tooltip anchor, to set the position of tooltips using the Normal Anchor.");
-	end
+	local lists = page:Tabs(tabNames);
 
-	for _, option in ipairs(category.options or {}) do
-		local enabled = EnabledFn(option);
-		if (option.type == "Header") then
-			if (option.label:find("^Priority #")) then
-				list:Expandable(option.label, { key = option.var or option.label:gsub("^Priority #%d+: ", ""), tooltip = option.tip, enabled = enabled });
-			else
-				list:Header(option.label, { enabled = enabled });
+	for index, category in ipairs(options) do
+		local list = lists[index];
+
+		-- category-wide switch (e.g. Anchors) and the anchor's position button
+		if (category.enabled) then
+			local option = category.enabled;
+			list:Checkbox(option.label or ("Enable " .. category.category), function() return cfg[option.var]; end,
+				function(value) SetConfigValue(option.var, value); end, option.tip);
+		end
+		if (category.category == "Anchors") then
+			list:Button("Toggle Anchor", function() TipTac:SetShown(not TipTac:IsShown()); end,
+				"Show or hide the tooltip anchor, to set the position of tooltips using the Normal Anchor.");
+		end
+
+		for _, option in ipairs(category.options or {}) do
+			local enabled = EnabledFn(option);
+			if (option.type == "Header") then
+				if (option.label:find("^Priority #")) then
+					list:Expandable(option.label, { key = option.var or option.label:gsub("^Priority #%d+: ", ""), tooltip = option.tip, enabled = enabled });
+				else
+					list:Header(option.label, { enabled = enabled });
+				end
+			elseif (option.type == "TextOnly") then
+				if (option.label) and (option.label ~= "") then
+					list:Subheader(option.label);
+				end
+			elseif (option.type == "Separator") then
+				list:Divider();
+			elseif (option.type == "Check") then
+				list:Checkbox(option.label, function() return cfg[option.var]; end,
+					function(value) SetConfigValue(option.var, value); end, option.tip, { enabled = enabled });
+			elseif (option.type == "DropDown") then
+				list:Dropdown(option.label, DropdownOptions(option.list), function() return cfg[option.var]; end,
+					function(value) SetConfigValue(option.var, value); end, option.tip, { enabled = enabled });
+			elseif (option.type == "Slider") then
+				list:Slider(option.label, option.min, option.max, option.step, function() return cfg[option.var]; end,
+					function(value) SetConfigValue(option.var, value); end, FormatSliderValue(option), option.tip, { enabled = enabled });
 			end
-		elseif (option.type == "TextOnly") then
-			if (option.label) and (option.label ~= "") then
-				list:Subheader(option.label);
-			end
-		elseif (option.type == "Separator") then
-			list:Divider();
-		elseif (option.type == "Check") then
-			list:Checkbox(option.label, function() return cfg[option.var]; end,
-				function(value) SetConfigValue(option.var, value); end, option.tip, { enabled = enabled });
-		elseif (option.type == "DropDown") then
-			list:Dropdown(option.label, DropdownOptions(option.list), function() return cfg[option.var]; end,
-				function(value) SetConfigValue(option.var, value); end, option.tip, { enabled = enabled });
-		elseif (option.type == "Slider") then
-			list:Slider(option.label, option.min, option.max, option.step, function() return cfg[option.var]; end,
-				function(value) SetConfigValue(option.var, value); end, FormatSliderValue(option), option.tip, { enabled = enabled });
 		end
 	end
+
+	Kit.Register(page);
 end
 
-Kit.Register(page);
+LibFroznFunctions:RegisterForGroupEvents(PARENT_MOD_NAME, {
+	OnConfigLoaded = function(self, TT_CacheForFrames, _configDb, _cfg)
+		configDb, cfg = _configDb, _cfg;
+		BuildPage();
+	end
+}, PARENT_MOD_NAME .. " - Options");
 
--- open the options page (used by /tip, the addon compartment and TipTac:ToggleOptions)
-function f:Open()
-	Kit.Open(page);
+-- open the options page (used by /tip and TipTac:ToggleOptions)
+function ns.OpenOptions()
+	if (page) then
+		Kit.Open(page);
+	end
 end
