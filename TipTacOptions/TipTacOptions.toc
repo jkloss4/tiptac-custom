@@ -13,4 +13,5 @@
 
 embeds.xml
 
+SettingsKit.lua
 ttOptions.lua
