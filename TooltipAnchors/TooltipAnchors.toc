@@ -1,6 +1,6 @@
 ## Interface: 120100, 16001
 ## Version: 1.0.0
-## IconTexture: Interface\AddOns\TooltipAnchors\media\tiptac_logo
+## IconTexture: Interface/Icons/INV_Misc_Note_01
 ## Title: Tooltip Anchors
 ## Author: Frozn45, Aezay (Earthen Ring EU); modified by jkloss4
 ## Notes: Tooltip anchoring, fading and hiding. Options: /tip. Stripped-down fork of TipTac Reborn.
