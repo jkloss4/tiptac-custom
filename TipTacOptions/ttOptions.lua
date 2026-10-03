@@ -37,30 +37,19 @@ local function GetOffsetOption(anchorFrameName, axis)
 	return { type = "Slider", var = "mouseOffset" .. anchorFrameName .. axis, label = axis .. " Offset", tip = "Offset of the tooltip from its anchor position, for any anchor type", min = -200, max = 200, step = 1, fontSizeDelta = -2, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end };
 end
 
-local ttOptionsAnchors = {
-	{ type = "DropDown", var = "anchorWorldUnitType", label = "World Unit Type", list = DROPDOWN_ANCHORTYPE, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end },
-	{ type = "DropDown", var = "anchorWorldUnitPoint", label = "World Unit Point", list = DROPDOWN_ANCHORPOS, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end },
-	GetOffsetOption("WorldUnit", "X"),
-	GetOffsetOption("WorldUnit", "Y"),
+local function AnchorEnabled(factory) return factory:GetConfigValue("enableAnchor"); end
 
-	{ type = "Separator" },
-	{ type = "DropDown", var = "anchorWorldTipType", label = "World Tip Type", list = DROPDOWN_ANCHORTYPE, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end },
-	{ type = "DropDown", var = "anchorWorldTipPoint", label = "World Tip Point", list = DROPDOWN_ANCHORPOS, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end },
-	GetOffsetOption("WorldTip", "X"),
-	GetOffsetOption("WorldTip", "Y"),
+-- the default anchor settings: a header per anchor frame ("World Unit", ...) with its type, point and offsets
+local ttOptionsAnchors = {};
 
-	{ type = "Separator" },
-	{ type = "DropDown", var = "anchorFrameUnitType", label = "Frame Unit Type", list = DROPDOWN_ANCHORTYPE, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end },
-	{ type = "DropDown", var = "anchorFrameUnitPoint", label = "Frame Unit Point", list = DROPDOWN_ANCHORPOS, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end },
-	GetOffsetOption("FrameUnit", "X"),
-	GetOffsetOption("FrameUnit", "Y"),
-
-	{ type = "Separator" },
-	{ type = "DropDown", var = "anchorFrameTipType", label = "Frame Tip Type", list = DROPDOWN_ANCHORTYPE, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end },
-	{ type = "DropDown", var = "anchorFrameTipPoint", label = "Frame Tip Point", list = DROPDOWN_ANCHORPOS, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end },
-	GetOffsetOption("FrameTip", "X"),
-	GetOffsetOption("FrameTip", "Y")
-};
+for _, anchorFrame in ipairs({ { "WorldUnit", "World Unit" }, { "WorldTip", "World Tip" }, { "FrameUnit", "Frame Unit" }, { "FrameTip", "Frame Tip" } }) do
+	local name, label = anchorFrame[1], anchorFrame[2];
+	tinsert(ttOptionsAnchors, { type = "Header", label = label, enabled = AnchorEnabled });
+	tinsert(ttOptionsAnchors, { type = "DropDown", var = "anchor" .. name .. "Type", label = "Type", tip = "How " .. label .. " tooltips are anchored", list = DROPDOWN_ANCHORTYPE, enabled = AnchorEnabled });
+	tinsert(ttOptionsAnchors, { type = "DropDown", var = "anchor" .. name .. "Point", label = "Point", tip = "The point of " .. label .. " tooltips that's anchored", list = DROPDOWN_ANCHORPOS, enabled = AnchorEnabled });
+	tinsert(ttOptionsAnchors, GetOffsetOption(name, "X"));
+	tinsert(ttOptionsAnchors, GetOffsetOption(name, "Y"));
+end
 
 local priority = 0;
 
