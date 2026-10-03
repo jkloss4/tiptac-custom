@@ -45,17 +45,20 @@ local ttOptionsAnchors = {
 	GetOffsetOption("WorldUnit", "X"),
 	GetOffsetOption("WorldUnit", "Y"),
 
-	{ type = "DropDown", var = "anchorWorldTipType", label = "World Tip Type", list = DROPDOWN_ANCHORTYPE, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end, y = 10 },
+	{ type = "Separator" },
+	{ type = "DropDown", var = "anchorWorldTipType", label = "World Tip Type", list = DROPDOWN_ANCHORTYPE, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end },
 	{ type = "DropDown", var = "anchorWorldTipPoint", label = "World Tip Point", list = DROPDOWN_ANCHORPOS, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end },
 	GetOffsetOption("WorldTip", "X"),
 	GetOffsetOption("WorldTip", "Y"),
 
-	{ type = "DropDown", var = "anchorFrameUnitType", label = "Frame Unit Type", list = DROPDOWN_ANCHORTYPE, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end, y = 10 },
+	{ type = "Separator" },
+	{ type = "DropDown", var = "anchorFrameUnitType", label = "Frame Unit Type", list = DROPDOWN_ANCHORTYPE, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end },
 	{ type = "DropDown", var = "anchorFrameUnitPoint", label = "Frame Unit Point", list = DROPDOWN_ANCHORPOS, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end },
 	GetOffsetOption("FrameUnit", "X"),
 	GetOffsetOption("FrameUnit", "Y"),
 
-	{ type = "DropDown", var = "anchorFrameTipType", label = "Frame Tip Type", list = DROPDOWN_ANCHORTYPE, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end, y = 10 },
+	{ type = "Separator" },
+	{ type = "DropDown", var = "anchorFrameTipType", label = "Frame Tip Type", list = DROPDOWN_ANCHORTYPE, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end },
 	{ type = "DropDown", var = "anchorFrameTipPoint", label = "Frame Tip Point", list = DROPDOWN_ANCHORPOS, enabled = function(factory) return factory:GetConfigValue("enableAnchor") end },
 	GetOffsetOption("FrameTip", "X"),
 	GetOffsetOption("FrameTip", "Y")
@@ -479,26 +482,95 @@ local function SelectTab(index)
 	end
 end
 
--- Layout state while building a tab: the content frame and the offset of its next row from the top.
-local page, nextY, rowY;
+-- Layout: every item is a row frame on its tab's content frame. LayoutTab stacks the rows top to bottom, skipping
+-- the rows of collapsed sections, so collapsing or expanding a section moves everything below it.
+local ROW_W = 560;
 
--- Anchor a region at the next free row and move the cursor below it.
-local function PlaceNext(region, x, height, gap)
-	nextY = nextY - gap;
-	rowY = nextY;
-	region:SetPoint("TOPLEFT", page, "TOPLEFT", LEFT_MARGIN + x, nextY);
-	nextY = nextY - height;
+-- while building a tab: its content frame, the row added last (second-column checkboxes go into it) and the
+-- collapsible section new rows belong to, if any
+local page, lastRow, currentSection;
+
+local function NewRow(height, gap)
+	local row = CreateFrame("Frame", nil, page);
+	row:SetSize(ROW_W, height);
+	row.gap = gap;
+	row.section = currentSection;
+	tinsert(page.rows, row);
+	lastRow = row;
+	return row;
 end
 
--- Anchor a region on the row placed last, at the given x.
-local function PlaceBeside(region, x)
-	region:SetPoint("TOPLEFT", page, "TOPLEFT", LEFT_MARGIN + x, rowY);
+local function LayoutTab(content)
+	local y = 0;
+	for _, row in ipairs(content.rows) do
+		local shown = not (row.section and row.section.collapsed);
+		row:SetShown(shown);
+		if (shown) then
+			y = y - row.gap;
+			row:SetPoint("TOPLEFT", content, "TOPLEFT", LEFT_MARGIN, y);
+			y = y - row:GetHeight();
+		end
+	end
+	content:SetHeight(-y + 16);
 end
 
+-- Collapsed sections are remembered in TipTac's config, by header var or label without its "Priority #n: " prefix
+-- (the numbers shift with the client's features).
+local function IsSectionCollapsed(key)
+	return cfg.optionsCollapsed and cfg.optionsCollapsed[key] or false;
+end
+
+local function SetSectionCollapsed(key, collapsed)
+	cfg.optionsCollapsed = cfg.optionsCollapsed or {};
+	cfg.optionsCollapsed[key] = collapsed or nil;
+end
+
+-- "Priority #" headers start a collapsible section that runs until the next header; other headers don't collapse.
 local function AddHeader(option)
-	local header = page:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge");
+	local row = NewRow(22, #page.rows == 0 and 10 or 20);
+	row.section = nil; -- headers always stay visible
+	local content = page;
+
+	local header = row:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge");
 	header:SetText(option.label);
-	PlaceNext(header, 0, 18, nextY == 0 and 12 or 22);
+
+	if (option.label:find("^Priority #")) then
+		local key = option.var or option.label:gsub("^Priority #%d+: ", "");
+		local section = { collapsed = IsSectionCollapsed(key) };
+		currentSection = section;
+
+		-- the +/- button and the heading text are one clickable button
+		local button = CreateFrame("Button", nil, row);
+		button:SetPoint("LEFT");
+		button:SetHeight(22);
+		local icon = button:CreateTexture(nil, "ARTWORK");
+		icon:SetSize(16, 16);
+		icon:SetPoint("LEFT", 0, 0);
+		local highlight = button:CreateTexture(nil, "HIGHLIGHT");
+		highlight:SetTexture("Interface\\Buttons\\UI-PlusButton-Hilight");
+		highlight:SetBlendMode("ADD");
+		highlight:SetAllPoints(icon);
+		header:SetPoint("LEFT", icon, "RIGHT", 6, 0);
+		button:SetWidth(22 + header:GetStringWidth());
+
+		local function UpdateIcon()
+			icon:SetTexture(section.collapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up");
+		end
+		UpdateIcon();
+
+		button:SetScript("OnClick", function()
+			section.collapsed = not section.collapsed;
+			SetSectionCollapsed(key, section.collapsed);
+			UpdateIcon();
+			PlaySound(section.collapsed and SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_OFF or SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+			LayoutTab(content);
+		end);
+		SetTooltip(button, option.label, (option.tip and (option.tip .. "\n\n") or "") .. "Click to show or hide this section's options.");
+	else
+		header:SetPoint("LEFT", 0, 0);
+		currentSection = nil;
+	end
+
 	tinsert(refreshers, function()
 		header:SetFontObject(IsEnabled(option) and "GameFontNormalLarge" or "GameFontDisableLarge");
 	end);
@@ -508,19 +580,29 @@ local function AddText(option)
 	if (not option.label) or (option.label == "") then
 		return;
 	end
-	local text = page:CreateFontString(nil, "ARTWORK", "GameFontNormal");
+	local row = NewRow(14, 10 + (option.y or 0));
+	local text = row:CreateFontString(nil, "ARTWORK", "GameFontNormal");
+	text:SetPoint("LEFT", 4, 0);
 	text:SetText(option.label);
-	PlaceNext(text, 4, 14, 10 + (option.y or 0));
+end
+
+-- a thin line between groups of options
+local function AddSeparator(option)
+	local row = NewRow(1, 12 + (option.y or 0));
+	local line = row:CreateTexture(nil, "ARTWORK");
+	line:SetColorTexture(1, 1, 1, 0.15);
+	line:SetPoint("LEFT", 0, 0);
+	line:SetSize(ROW_W - 40, 1);
 end
 
 local function AddCheckbox(option, label)
-	local checkbox = CreateFrame("CheckButton", nil, page, "UICheckButtonTemplate");
-	checkbox:SetSize(26, 26);
-	if (option.x) then
-		PlaceBeside(checkbox, COLUMN2_X);
-	else
-		PlaceNext(checkbox, 0, 26, 2 + (option.y or 0));
+	local row, x = lastRow, COLUMN2_X;
+	if (not option.x) or (not row) then
+		row, x = NewRow(26, 2 + (option.y or 0)), 0;
 	end
+	local checkbox = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate");
+	checkbox:SetSize(26, 26);
+	checkbox:SetPoint("LEFT", x, 0);
 
 	local text = checkbox.text or checkbox.Text;
 	text:SetFontObject("GameFontHighlight");
@@ -540,13 +622,14 @@ local function AddCheckbox(option, label)
 end
 
 local function AddDropdown(option)
-	local label = page:CreateFontString(nil, "ARTWORK", "GameFontHighlight");
+	local row = NewRow(26, 4 + (option.y or 0));
+	local label = row:CreateFontString(nil, "ARTWORK", "GameFontHighlight");
 	label:SetWidth(LABEL_COL_W);
 	label:SetJustifyH("LEFT");
+	label:SetPoint("LEFT", 4, 0);
 	label:SetText(option.label);
-	PlaceNext(label, 4, 16, 14 + (option.y or 0));
 
-	local dropdown = CreateFrame("DropdownButton", nil, page, "WowStyle1DropdownTemplate");
+	local dropdown = CreateFrame("DropdownButton", nil, row, "WowStyle1DropdownTemplate");
 	dropdown:SetWidth(180);
 	dropdown:SetPoint("LEFT", label, "RIGHT", 8, 0);
 	dropdown:SetupMenu(function(_, root)
@@ -573,17 +656,18 @@ local function FormatSliderValue(option, value)
 end
 
 local function AddSlider(option)
-	local label = page:CreateFontString(nil, "ARTWORK", "GameFontHighlight");
+	local row = NewRow(20, 10 + (option.y or 0));
+	local label = row:CreateFontString(nil, "ARTWORK", "GameFontHighlight");
 	label:SetWidth(LABEL_COL_W);
 	label:SetJustifyH("LEFT");
+	label:SetPoint("LEFT", 4, 0);
 	label:SetText(option.label);
-	PlaceNext(label, 4, 20, 10 + (option.y or 0));
 
-	local slider = CreateFrame("Frame", nil, page, "MinimalSliderWithSteppersTemplate");
+	local slider = CreateFrame("Frame", nil, row, "MinimalSliderWithSteppersTemplate");
 	slider:SetSize(180, 20);
 	slider:SetPoint("LEFT", label, "RIGHT", 8, 0);
 
-	local valueText = page:CreateFontString(nil, "ARTWORK", "GameFontHighlight");
+	local valueText = row:CreateFontString(nil, "ARTWORK", "GameFontHighlight");
 	valueText:SetPoint("LEFT", slider, "RIGHT", 8, 0);
 	valueText:SetWidth(50);
 	valueText:SetJustifyH("LEFT");
@@ -616,6 +700,7 @@ end
 local BUILDERS = {
 	Header = AddHeader,
 	TextOnly = AddText,
+	Separator = AddSeparator,
 	Check = AddCheckbox,
 	DropDown = AddDropdown,
 	Slider = AddSlider,
@@ -654,11 +739,12 @@ for index, category in ipairs(options) do
 	scroll:Hide();
 	local content = CreateFrame("Frame", nil, scroll);
 	content:SetSize(1, 1);
+	content.rows = {};
 	scroll:SetScrollChild(content);
 	scroll:SetScript("OnSizeChanged", function(_, width) content:SetWidth(width); end);
 	tabContents[index] = scroll;
 
-	page, nextY, rowY = content, 0, 0;
+	page, lastRow, currentSection = content, nil, nil;
 
 	-- category-wide switch (e.g. Anchors)
 	if (category.enabled) then
@@ -672,15 +758,17 @@ for index, category in ipairs(options) do
 		end
 	end
 
-	-- defaults for this tab
-	local reset = CreateFrame("Button", nil, content, "UIPanelButtonTemplate");
+	-- defaults for this tab (outside any section)
+	currentSection = nil;
+	local resetRow = NewRow(22, 24);
+	local reset = CreateFrame("Button", nil, resetRow, "UIPanelButtonTemplate");
 	reset:SetSize(140, 22);
+	reset:SetPoint("LEFT", 4, 0);
 	reset:SetText("Reset " .. category.category);
-	PlaceNext(reset, 4, 22, 24);
 	reset:SetScript("OnClick", function() ResetCategory(category); end);
 	SetTooltip(reset, "Reset " .. category.category, "Reset the options on this tab to their defaults.");
 
-	content:SetHeight(-nextY + 16);
+	LayoutTab(content);
 end
 
 -- page buttons, top right
