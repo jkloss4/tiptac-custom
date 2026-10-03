@@ -4049,7 +4049,9 @@ LFF_UNIT_RECORD = {
 	SecretValue = 1 -- unit record is a secret value
 };
 
-local cacheUnitRecords = {};
+-- Tooltip Anchors: weak values, so a record is dropped once no tooltip refers to it any more. (A plain table kept a
+-- record for every unit GUID ever hovered for the whole session.)
+local cacheUnitRecords = setmetatable({}, { __mode = "v" });
 
 function LibFroznFunctions:GetUnitRecordFromCache(_unitID, _unitGUID, tryToDetermineUnitIDFromUnitGUID)
 	-- no valid unit any more (e.g. during fading out) or unit guid is a secret value
