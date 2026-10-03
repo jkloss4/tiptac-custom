@@ -739,6 +739,10 @@ for index, category in ipairs(options) do
 	-- the classic scroll bar (as QuickEmote uses): it sits 6px right of the scroll frame and its arrow buttons span
 	-- the frame's height, so this leaves 8px above and below the arrows and 10px right of the bar
 	local scroll = CreateFrame("ScrollFrame", nil, pane, "UIPanelScrollFrameTemplate");
+	-- hide the scroll bar while there's nothing to scroll (e.g. the short Fading tab); the template shows it again when
+	-- the content gets taller than the pane. Start hidden in case a short tab never reports a scroll range.
+	scroll.scrollBarHideable = true;
+	scroll.ScrollBar:Hide();
 	-- a dark track behind the scroll bar, like Ace3's (BlizzMove's)
 	local scrollBg = scroll.ScrollBar:CreateTexture(nil, "BACKGROUND");
 	scrollBg:SetAllPoints(scroll.ScrollBar);
