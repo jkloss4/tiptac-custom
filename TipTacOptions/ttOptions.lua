@@ -736,16 +736,12 @@ for index, category in ipairs(options) do
 	tabs[index] = tab;
 
 	-- scrollable content inside the pane
-	local scroll = CreateFrame("ScrollFrame", nil, pane, "ScrollFrameTemplate");
-	scroll:SetPoint("TOPLEFT", 4, -6);
-	scroll:SetPoint("BOTTOMRIGHT", -28, 6);
+	-- the classic scroll bar (as QuickEmote uses): it sits 6px right of the scroll frame and its arrow buttons span
+	-- the frame's height, so this leaves 8px above and below the arrows and 10px right of the bar
+	local scroll = CreateFrame("ScrollFrame", nil, pane, "UIPanelScrollFrameTemplate");
+	scroll:SetPoint("TOPLEFT", 4, -8);
+	scroll:SetPoint("BOTTOMRIGHT", -32, 8);
 	scroll:Hide();
-	-- the template places its scroll bar closer to the top of the pane than the bottom; inset it equally instead
-	if (scroll.ScrollBar) then
-		scroll.ScrollBar:ClearAllPoints();
-		scroll.ScrollBar:SetPoint("TOPRIGHT", pane, "TOPRIGHT", -10, -8);
-		scroll.ScrollBar:SetPoint("BOTTOMRIGHT", pane, "BOTTOMRIGHT", -10, 8);
-	end
 	local content = CreateFrame("Frame", nil, scroll);
 	content:SetSize(1, 1);
 	content.rows = {};
