@@ -3,11 +3,10 @@
 ## IconTexture: Interface\AddOns\TipTacOptions\media\tiptac_logo
 ## Title: TipTacOptions
 ## Author: Frozn45, Aezay (Earthen Ring EU); modified by jkloss4
-## Notes: Option dialog for TipTac (Custom)
+## Notes: Options page for TipTac (Custom), in Options > AddOns
 ## Category-enUS: User Interface
 ## Group: TipTac
 ## Dependencies: TipTac
-## LoadOnDemand: 1
 ## X-Category: Tooltip
 ## X-Website: https://github.com/jkloss4/tiptac-custom
 ## X-License: GPL-3.0

@@ -1,7 +1,10 @@
 -- create addon
 local MOD_NAME = ...;
 local PARENT_MOD_NAME = "TipTac";
-local f = CreateFrame("Frame",MOD_NAME,UIParent,BackdropTemplateMixin and "BackdropTemplate");	-- 9.0.1: Using BackdropTemplate
+-- The options page: a canvas in Blizzard's Settings panel (Options > AddOns > TipTac), built entirely from
+-- TipTacOptions' own frames (Blizzard's pooled Settings controls would run our code inside Blizzard's, which taints).
+local f = CreateFrame("Frame", MOD_NAME);
+f:Hide(); -- start hidden, so the Settings panel showing it fires OnShow (which fills in the current values)
 
 -- get libs
 local LibFroznFunctions = LibStub:GetLibrary("LibFroznFunctions-1.0");
@@ -9,36 +12,26 @@ local LibFroznFunctions = LibStub:GetLibrary("LibFroznFunctions-1.0");
 -- set config
 local configDb, cfg = LibFroznFunctions:CreateDbWithLibAceDB("TipTac_Config");
 
--- constants
-local TT_OPTIONS_CATEGORY_LIST_WIDTH = 117;
-
--- DropDown Lists
+-- DropDown Lists: { label, value } in display order
 local DROPDOWN_ANCHORTYPE = {
-	["Normal Anchor"] = "normal",
-	["Mouse Anchor"] = "mouse",
-	["Parent Anchor"] = "parent",
+	{ "Normal Anchor", "normal" },
+	{ "Mouse Anchor", "mouse" },
+	{ "Parent Anchor", "parent" },
 };
 
 local DROPDOWN_ANCHORPOS = {
-	["Top"] = "TOP",
-	["Top Left"] = "TOPLEFT",
-	["Top Right"] = "TOPRIGHT",
-	["Bottom"] = "BOTTOM",
-	["Bottom Left"] = "BOTTOMLEFT",
-	["Bottom Right"] = "BOTTOMRIGHT",
-	["Left"] = "LEFT",
-	["Right"] = "RIGHT",
-	["Center"] = "CENTER",
+	{ "Top Left", "TOPLEFT" },
+	{ "Top", "TOP" },
+	{ "Top Right", "TOPRIGHT" },
+	{ "Left", "LEFT" },
+	{ "Center", "CENTER" },
+	{ "Right", "RIGHT" },
+	{ "Bottom Left", "BOTTOMLEFT" },
+	{ "Bottom", "BOTTOM" },
+	{ "Bottom Right", "BOTTOMRIGHT" },
 };
 
--- Options -- The "y" value of a category subtable, will further increase the vertical offset position of the item
---
--- hint for layouting options:
--- to set pixel perfect scale for options to adjust option elements:
--- /run local psw, psh = GetPhysicalScreenSize(); local uf = 768 / psh; local uis = UIParent:GetEffectiveScale(); local ttos = uf / uis; _G["TipTacOptions"]:SetScale(ttos);
-local activePage = 1;
-local options = {};
-local option;
+-- Options: "y" adds space above an item; "x" puts a checkbox in the second column of the row above.
 
 -- Anchors
 -- offset slider for the given anchor frame ("WorldUnit", "WorldTip", "FrameUnit", "FrameTip") and axis ("X", "Y")
@@ -314,8 +307,7 @@ tinsert(ttOptionsHiding, { type = "Check", var = "hideTipsForOwnCompanions", lab
 
 tinsert(ttOptionsHiding, { type = "Header", label = "Others" });
 
-tinsert(ttOptionsHiding, { type = "DropDown", var = "showHiddenModifierKey", label = "Still Show Hidden Tips\nwhen Holding\nModifier Key", list = { ["Shift"] = "shift", ["Ctrl"] = "ctrl", ["Alt"] = "alt", ["|cffffa0a0None"] = "none" } });
-tinsert(ttOptionsHiding, { type = "TextOnly", label = "", y = -12 }); -- spacer for multi-line label above
+tinsert(ttOptionsHiding, { type = "DropDown", var = "showHiddenModifierKey", label = "Show Hidden Tips While Holding", tip = "Hidden tips still show while this modifier key is held.", list = { { "Shift", "shift" }, { "Ctrl", "ctrl" }, { "Alt", "alt" }, { "|cffffa0a0None", "none" } } });
 
 -- build options
 local options = {
@@ -349,547 +341,366 @@ local options = {
 };
 
 --------------------------------------------------------------------------------------------------------
---                                          Initialize Frame                                          --
+--                                            Options Page                                            --
 --------------------------------------------------------------------------------------------------------
+-- One page with a tab per category (Fading, Anchors, Hiding), styled like the other addons' pages: Blizzard's
+-- checkboxes, dropdowns and sliders, laid out top to bottom in a scrollable pane.
 
-tinsert(UISpecialFrames, f:GetName()); -- hopefully no taint
-
-f.options = options;
-
-f:SetSize(360 + TT_OPTIONS_CATEGORY_LIST_WIDTH,398);
-f:SetBackdrop({ bgFile = "Interface\\ChatFrame\\ChatFrameBackground", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = 1, tileSize = 16, edgeSize = 16, insets = { left = 3, right = 3, top = 3, bottom = 3 } });
-f:SetBackdropColor(0.1,0.22,0.35,1);
-f:SetBackdropBorderColor(0.1,0.1,0.1,1);
-f:EnableMouse(true);
-f:SetMovable(true);
-f:SetFrameStrata("DIALOG");
-f:SetToplevel(true);
-f:SetClampedToScreen(true);
-f:SetScript("OnShow", function(self)
-	f.searchBox:SetText("");
-	f.searchBox:ClearFocus();
-	
-	self:BuildCategoryList();
-	self:BuildCategoryPage();
-end);
-f:Hide();
-
-f.outline = CreateFrame("Frame",nil,f,BackdropTemplateMixin and "BackdropTemplate");	-- 9.0.1: Using BackdropTemplate
-f.outline:SetBackdrop({ bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = 1, tileSize = 16, edgeSize = 16, insets = { left = 4, right = 4, top = 4, bottom = 4 } });
-f.outline:SetBackdropColor(0.1,0.1,0.2,1);
-f.outline:SetBackdropBorderColor(0.8,0.8,0.9,0.4);
-f.outline:SetPoint("TOPLEFT",12,-12);
-f.outline:SetPoint("BOTTOMLEFT",12,12);
-f.outline:SetWidth(TT_OPTIONS_CATEGORY_LIST_WIDTH);
-
-f:SetScript("OnMouseDown",f.StartMoving);
-f:SetScript("OnMouseUp",function(self) self:StopMovingOrSizing(); cfg.optionsLeft = self:GetLeft(); cfg.optionsBottom = self:GetBottom(); end);
-
-if (cfg.optionsLeft) and (cfg.optionsBottom) then
-	f:SetPoint("BOTTOMLEFT",UIParent,"BOTTOMLEFT",cfg.optionsLeft,cfg.optionsBottom);
-else
-	f:SetPoint("CENTER");
-end
-
-f.header = f:CreateFontString(nil,"ARTWORK","GameFontHighlight");
-f.header:SetFont(GameFontNormal:GetFont(),22,"THICKOUTLINE");
-f.header:SetPoint("TOPLEFT",f.outline,"TOPRIGHT",9,-4);
-f.header:SetText(CreateTextureMarkup("Interface\\AddOns\\" .. PARENT_MOD_NAME .. "\\media\\tiptac_logo", 256, 256, nil, nil, 0, 1, 0, 1) .. " " .. PARENT_MOD_NAME.." Options");
-
-f.vers = f:CreateFontString(nil,"ARTWORK","GameFontNormalSmall");
-f.vers:SetPoint("TOPRIGHT",-15,-15);
-local versionTipTac = C_AddOns.GetAddOnMetadata(PARENT_MOD_NAME, "Version");
-local versionWoW, build = GetBuildInfo();
-f.vers:SetText(PARENT_MOD_NAME .. ": " .. versionTipTac .. "\nWoW: " .. versionWoW);
-f.vers:SetTextColor(1,1,0.5);
-
-local function SearchBox_OnEnter(self)
-	GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-	GameTooltip:AddLine("Search all Categories", 1, 1, 1);
-	GameTooltip:AddLine("Label and tooltip of options will be searched", nil, nil, nil, 1);
-	GameTooltip:Show();
-end
-
-local function SearchBox_OnLeave(self)
-	GameTooltip:Hide();
-end
-
-local function SearchBox_OnTextChanged(self)
-	f:BuildCategoryPage();
-end
-
-f.searchBox = CreateFrame("EditBox", nil, f, "SearchBoxTemplate");
-f.searchBox:SetSize(160, 20);
-f.searchBox:SetPoint("TOPRIGHT", f, "TOPRIGHT", -12, -42);
-f.searchBox:SetAutoFocus(false);
-f.searchBox.Instructions:SetText("Search all Categories");
-f.searchBox:SetScript("OnEnter", SearchBox_OnEnter);
-f.searchBox:SetScript("OnLeave", SearchBox_OnLeave);
-f.searchBox:HookScript("OnTextChanged", function(self, userInput)
-	if (userInput) then
-		SearchBox_OnTextChanged(self);
-	end
-end);
-f.searchBox.clearButton:HookScript("OnClick", function(self)
-	SearchBox_OnTextChanged(self:GetParent());
-end);
-f.searchBox:HookScript("OnEscapePressed", function(self)
-	self:SetText("");
-	self:ClearFocus();
-	
-	f:BuildCategoryPage();
-end);
-
-local function Anchor_OnEnter(self)
-	GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-	GameTooltip:AddLine("Anchor", 1, 1, 1);
-	GameTooltip:AddLine("Click to toggle visibility of " .. PARENT_MOD_NAME .. "'s anchor to set the position for default anchored tooltips.", nil, nil, nil, 1);
-	GameTooltip:Show();
-end
-
-local function Anchor_OnLeave(self)
-	GameTooltip:Hide();
-end
-
-f.btnAnchor = CreateFrame("Button",nil,f,"UIPanelButtonTemplate");
-f.btnAnchor:SetSize(75,24);
-f.btnAnchor:SetPoint("BOTTOMLEFT",f.outline,"BOTTOMRIGHT",9,1);
 local TipTac = _G[PARENT_MOD_NAME];
-f.btnAnchor:SetScript("OnClick",function() TipTac:SetShown(not TipTac:IsShown()) end);
-f.btnAnchor:SetScript("OnEnter", Anchor_OnEnter);
-f.btnAnchor:SetScript("OnLeave", Anchor_OnLeave);
-f.btnAnchor:SetText("Anchor");
 
-local function Reset_OnClick(self)
-	for index, option in ipairs(f.options[activePage].options or {}) do
-		if (option.var) then
-			cfg[option.var] = nil;	-- when cleared, they will read the default value from the metatable
+local LEFT_MARGIN = 16;
+local COLUMN2_X = 300;   -- second-column checkboxes ("x" option)
+local LABEL_COL_W = 190; -- labels before dropdowns and sliders, so the controls line up
+
+-- passed to the options' enabled() functions, which expect the old options factory
+local factory = {
+	GetConfigValue = function(_, var) return cfg[var]; end,
+};
+
+local refreshers = {};
+
+local function RefreshAll()
+	for _, refresh in ipairs(refreshers) do
+		refresh();
+	end
+end
+
+local function SetConfigValue(var, value)
+	cfg[var] = value;
+	TipTac:ApplyConfig();
+	RefreshAll();
+end
+
+local function IsEnabled(option)
+	return (not option.enabled) or (not not option.enabled(factory, nil, option, cfg[option.var]));
+end
+
+local function SetTooltip(region, title, text)
+	if (not text) then
+		return;
+	end
+	region:HookScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+		GameTooltip:AddLine(title, 1, 1, 1);
+		GameTooltip:AddLine(text, nil, nil, nil, true);
+		GameTooltip:Show();
+	end);
+	region:HookScript("OnLeave", GameTooltip_Hide);
+end
+
+-- title, version and the page buttons
+local title = f:CreateFontString(nil, "ARTWORK", "GameFontHighlightHuge");
+title:SetPoint("TOPLEFT", LEFT_MARGIN, -16);
+title:SetText(PARENT_MOD_NAME);
+
+local version = f:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall");
+version:SetPoint("BOTTOMLEFT", title, "BOTTOMRIGHT", 10, 2);
+version:SetText(C_AddOns.GetAddOnMetadata(PARENT_MOD_NAME, "Version") .. "  ·  WoW " .. (GetBuildInfo()));
+
+-- tabs on a bordered pane, like Wayfinder's (BlizzMove's Ace3 tab groups)
+local pane = CreateFrame("Frame", nil, f, "BackdropTemplate");
+pane:SetPoint("TOPLEFT", f, "TOPLEFT", LEFT_MARGIN - 6, -76);
+pane:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -10, 10);
+pane:SetBackdrop({
+	bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+	edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+	tile = true, tileSize = 16, edgeSize = 16,
+	insets = { left = 3, right = 3, top = 5, bottom = 3 },
+});
+pane:SetBackdropColor(0.1, 0.1, 0.1, 0.5);
+pane:SetBackdropBorderColor(0.4, 0.4, 0.4);
+
+local ACTIVE_TAB_TEXTURE = "Interface\\OptionsFrame\\UI-OptionsFrame-ActiveTab";
+local INACTIVE_TAB_TEXTURE = "Interface\\OptionsFrame\\UI-OptionsFrame-InActiveTab";
+
+-- the three pieces (left cap, stretching middle, right cap) of one tab look
+local function CreateTabPieces(tab, file, offsetY)
+	local left = tab:CreateTexture(nil, "BORDER");
+	left:SetTexture(file);
+	left:SetTexCoord(0, 0.15625, 0, 1);
+	left:SetSize(20, 24);
+	left:SetPoint("BOTTOMLEFT", 0, offsetY);
+
+	local right = tab:CreateTexture(nil, "BORDER");
+	right:SetTexture(file);
+	right:SetTexCoord(0.84375, 1, 0, 1);
+	right:SetSize(20, 24);
+	right:SetPoint("BOTTOMRIGHT", 0, offsetY);
+
+	local middle = tab:CreateTexture(nil, "BORDER");
+	middle:SetTexture(file);
+	middle:SetTexCoord(0.15625, 0.84375, 0, 1);
+	middle:SetPoint("TOPLEFT", left, "TOPRIGHT");
+	middle:SetPoint("BOTTOMRIGHT", right, "BOTTOMLEFT");
+
+	return { left, middle, right };
+end
+
+local function CreateTab(text)
+	local tab = CreateFrame("Button", nil, f);
+	tab:SetHeight(24);
+	tab.activePieces = CreateTabPieces(tab, ACTIVE_TAB_TEXTURE, -3);
+	tab.inactivePieces = CreateTabPieces(tab, INACTIVE_TAB_TEXTURE, 0);
+
+	local label = tab:CreateFontString(nil, "OVERLAY");
+	tab:SetFontString(label);
+	tab:SetNormalFontObject(GameFontNormalSmall);
+	tab:SetHighlightFontObject(GameFontHighlightSmall);
+	tab:SetDisabledFontObject(GameFontHighlightSmall);
+	tab:SetText(text);
+	tab:SetWidth(math.max(80, label:GetStringWidth() + 40));
+
+	tab:SetHighlightTexture("Interface\\PaperDollInfoFrame\\UI-Character-Tab-Highlight", "ADD");
+	local highlight = tab:GetHighlightTexture();
+	highlight:ClearAllPoints();
+	highlight:SetPoint("LEFT", tab, "LEFT", 10, -4);
+	highlight:SetPoint("RIGHT", tab, "RIGHT", -10, -4);
+
+	-- show the tab as selected (raised, not clickable) or not
+	function tab:SetSelected(selected)
+		for _, piece in ipairs(self.activePieces) do piece:SetShown(selected); end
+		for _, piece in ipairs(self.inactivePieces) do piece:SetShown(not selected); end
+		self:SetEnabled(not selected);
+		label:ClearAllPoints();
+		label:SetPoint("CENTER", 0, selected and -2 or -3);
+	end
+
+	return tab;
+end
+
+local tabs, tabContents = {}, {};
+local selectedTab = 1;
+
+local function SelectTab(index)
+	selectedTab = index;
+	for i, tab in ipairs(tabs) do
+		tab:SetSelected(i == index);
+		tabContents[i]:SetShown(i == index);
+	end
+end
+
+-- Layout state while building a tab: the content frame and the offset of its next row from the top.
+local page, nextY, rowY;
+
+-- Anchor a region at the next free row and move the cursor below it.
+local function PlaceNext(region, x, height, gap)
+	nextY = nextY - gap;
+	rowY = nextY;
+	region:SetPoint("TOPLEFT", page, "TOPLEFT", LEFT_MARGIN + x, nextY);
+	nextY = nextY - height;
+end
+
+-- Anchor a region on the row placed last, at the given x.
+local function PlaceBeside(region, x)
+	region:SetPoint("TOPLEFT", page, "TOPLEFT", LEFT_MARGIN + x, rowY);
+end
+
+local function AddHeader(option)
+	local header = page:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge");
+	header:SetText(option.label);
+	PlaceNext(header, 0, 18, nextY == 0 and 12 or 22);
+	tinsert(refreshers, function()
+		header:SetFontObject(IsEnabled(option) and "GameFontNormalLarge" or "GameFontDisableLarge");
+	end);
+end
+
+local function AddText(option)
+	if (not option.label) or (option.label == "") then
+		return;
+	end
+	local text = page:CreateFontString(nil, "ARTWORK", "GameFontNormal");
+	text:SetText(option.label);
+	PlaceNext(text, 4, 14, 10 + (option.y or 0));
+end
+
+local function AddCheckbox(option, label)
+	local checkbox = CreateFrame("CheckButton", nil, page, "UICheckButtonTemplate");
+	checkbox:SetSize(26, 26);
+	if (option.x) then
+		PlaceBeside(checkbox, COLUMN2_X);
+	else
+		PlaceNext(checkbox, 0, 26, 2 + (option.y or 0));
+	end
+
+	local text = checkbox.text or checkbox.Text;
+	text:SetFontObject("GameFontHighlight");
+	text:SetText(label or option.label);
+	SetTooltip(checkbox, label or option.label, option.tip);
+
+	checkbox:SetScript("OnClick", function(self)
+		SetConfigValue(option.var, self:GetChecked() and true or false);
+	end);
+
+	tinsert(refreshers, function()
+		checkbox:SetChecked(cfg[option.var] and true or false);
+		local enabled = IsEnabled(option);
+		checkbox:SetEnabled(enabled);
+		text:SetFontObject(enabled and "GameFontHighlight" or "GameFontDisable");
+	end);
+end
+
+local function AddDropdown(option)
+	local label = page:CreateFontString(nil, "ARTWORK", "GameFontHighlight");
+	label:SetWidth(LABEL_COL_W);
+	label:SetJustifyH("LEFT");
+	label:SetText(option.label);
+	PlaceNext(label, 4, 16, 14 + (option.y or 0));
+
+	local dropdown = CreateFrame("DropdownButton", nil, page, "WowStyle1DropdownTemplate");
+	dropdown:SetWidth(180);
+	dropdown:SetPoint("LEFT", label, "RIGHT", 8, 0);
+	dropdown:SetupMenu(function(_, root)
+		for _, entry in ipairs(option.list) do
+			local text, value = entry[1], entry[2];
+			root:CreateRadio(text, function() return cfg[option.var] == value; end, function() SetConfigValue(option.var, value); end);
 		end
+	end);
+	SetTooltip(dropdown, option.label, option.tip);
+
+	tinsert(refreshers, function()
+		dropdown:GenerateMenu();
+		local enabled = IsEnabled(option);
+		dropdown:SetEnabled(enabled);
+		label:SetFontObject(enabled and "GameFontHighlight" or "GameFontDisable");
+	end);
+end
+
+local function FormatSliderValue(option, value)
+	if (option.step >= 1) then
+		return ("%d"):format(value);
+	end
+	return ("%.2f"):format(value);
+end
+
+local function AddSlider(option)
+	local label = page:CreateFontString(nil, "ARTWORK", "GameFontHighlight");
+	label:SetWidth(LABEL_COL_W);
+	label:SetJustifyH("LEFT");
+	label:SetText(option.label);
+	PlaceNext(label, 4, 20, 10 + (option.y or 0));
+
+	local slider = CreateFrame("Frame", nil, page, "MinimalSliderWithSteppersTemplate");
+	slider:SetSize(180, 20);
+	slider:SetPoint("LEFT", label, "RIGHT", 8, 0);
+
+	local valueText = page:CreateFontString(nil, "ARTWORK", "GameFontHighlight");
+	valueText:SetPoint("LEFT", slider, "RIGHT", 8, 0);
+	valueText:SetWidth(50);
+	valueText:SetJustifyH("LEFT");
+	SetTooltip(slider, option.label, option.tip);
+
+	-- the template's value-changed callback also fires when the value is set from code; `syncing` marks those
+	local syncing = false;
+	slider:Init(cfg[option.var] or option.min, option.min, option.max, math.floor((option.max - option.min) / option.step + 0.5), {});
+	slider:RegisterCallback(MinimalSliderWithSteppersMixin.Event.OnValueChanged, function(_, value)
+		value = math.floor(value / option.step + 0.5) * option.step;
+		valueText:SetText(FormatSliderValue(option, value));
+		if (not syncing) then
+			SetConfigValue(option.var, value);
+		end
+	end, slider);
+
+	tinsert(refreshers, function()
+		local value = cfg[option.var] or option.min;
+		syncing = true;
+		slider:SetValue(value);
+		syncing = false;
+		valueText:SetText(FormatSliderValue(option, value));
+		local enabled = IsEnabled(option);
+		slider:SetEnabled(enabled);
+		label:SetFontObject(enabled and "GameFontHighlight" or "GameFontDisable");
+		valueText:SetFontObject(enabled and "GameFontHighlight" or "GameFontDisable");
+	end);
+end
+
+local BUILDERS = {
+	Header = AddHeader,
+	TextOnly = AddText,
+	Check = AddCheckbox,
+	DropDown = AddDropdown,
+	Slider = AddSlider,
+};
+
+-- Reset one category's options to their defaults (cleared values read the default from the metatable)
+local function ResetCategory(category)
+	for _, option in ipairs(category.options or {}) do
+		if (option.var) then
+			cfg[option.var] = nil;
+		end
+	end
+	if (category.enabled) and (category.enabled.var) then
+		cfg[category.enabled.var] = nil;
 	end
 	configDb:RegisterDefaults(configDb.defaults);
 	TipTac:ApplyConfig();
-	
-	f:BuildCategoryList();
-	f:BuildCategoryPage();
+	RefreshAll();
 end
 
-local function Reset_OnEnter(self)
-	GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-	GameTooltip:AddLine("Defaults", 1, 1, 1);
-	GameTooltip:AddLine("Reset options of current page to default settings.", nil, nil, nil, 1);
-	GameTooltip:Show();
-end
-
-local function Reset_OnLeave(self)
-	GameTooltip:Hide();
-end
-
-f.btnReset = CreateFrame("Button",nil,f,"UIPanelButtonTemplate");
-f.btnReset:SetSize(75,24);
-f.btnReset:SetPoint("LEFT",f.btnAnchor,"RIGHT",9,0);
-f.btnReset:SetScript("OnClick",Reset_OnClick);
-f.btnReset:SetScript("OnEnter", Reset_OnEnter);
-f.btnReset:SetScript("OnLeave", Reset_OnLeave);
-f.btnReset:SetText("Defaults");
-
-f.btnClose = CreateFrame("Button",nil,f,"UIPanelButtonTemplate");
-f.btnClose:SetSize(75,24);
-f.btnClose:SetPoint("LEFT",f.btnReset,"RIGHT",9,0);
-f.btnClose:SetScript("OnClick",function() f:Hide(); end);
-f.btnClose:SetText("Close");
-
-local function SetScroll(value)
-	local status = f.scrollFrame.status or f.scrollFrame.localstatus;
-	local viewheight = f.scrollFrame:GetHeight();
-	local height = f.content:GetHeight();
-	local offset;
-
-	if viewheight > height then
-		offset = 0;
+-- build the tabs
+for index, category in ipairs(options) do
+	local tab = CreateTab(category.category);
+	if (index == 1) then
+		tab:SetPoint("BOTTOMLEFT", pane, "TOPLEFT", 6, -4);
 	else
-		offset = floor((height - viewheight) / 1000.0 * value);
+		tab:SetPoint("LEFT", tabs[index - 1], "RIGHT", -10, 0);
 	end
-	f.content:ClearAllPoints();
-	f.content:SetPoint("TOPLEFT", 0, offset);
-	f.content:SetPoint("TOPRIGHT", 0, offset);
-	status.offset = offset;
-	status.scrollvalue = value;
-end
+	tab:SetScript("OnClick", function() SelectTab(index); end);
+	tabs[index] = tab;
 
-local function MoveScroll(self, value)
-	local status = f.scrollFrame.status or f.scrollFrame.localstatus;
-	local height, viewheight = f.scrollFrame:GetHeight(), f.content:GetHeight();
+	-- scrollable content inside the pane
+	local scroll = CreateFrame("ScrollFrame", nil, pane, "ScrollFrameTemplate");
+	scroll:SetPoint("TOPLEFT", 4, -6);
+	scroll:SetPoint("BOTTOMRIGHT", -26, 6);
+	scroll:Hide();
+	local content = CreateFrame("Frame", nil, scroll);
+	content:SetSize(1, 1);
+	scroll:SetScrollChild(content);
+	scroll:SetScript("OnSizeChanged", function(_, width) content:SetWidth(width); end);
+	tabContents[index] = scroll;
 
-	if self.scrollBarShown then
-		local diff = height - viewheight;
-		local delta = 1;
-		if value < 0 then
-			delta = -1;
-		end
-		f.scrollBar:SetValue(min(max(status.scrollvalue + delta*(1000/(diff/45)),0), 1000));
+	page, nextY, rowY = content, 0, 0;
+
+	-- category-wide switch (e.g. Anchors)
+	if (category.enabled) then
+		AddCheckbox(category.enabled, category.enabled.label or ("Enable " .. category.category));
 	end
-end
 
-local function FixScroll(self)
-	if self.updateLock then return end
-	self.updateLock = true;
-	local status = f.scrollFrame.status or f.scrollFrame.localstatus;
-	local height, viewheight = f.scrollFrame:GetHeight(), f.content:GetHeight();
-	local offset = status.offset or 0;
-	-- Give us a margin of error of 2 pixels to stop some conditions that i would blame on floating point inaccuracys
-	-- No-one is going to miss 2 pixels at the bottom of the frame, anyhow!
-	if viewheight < height + 2 then
-		if self.scrollBarShown then
-			self.scrollBarShown = nil;
-			f.scrollBar:Hide();
-			f.scrollBar:SetValue(0);
-			local scrollFrameBottomRightPoint, scrollFrameBottomRightRelativeTo, scrollFrameBottomRightRelativePoint, scrollFrameBottomRightXOfs, scrollFrameBottomRightYOfs = f.scrollFrame:GetPoint(3);
-			scrollFrameBottomRightXOfs = -13;
-			f.scrollFrame:SetPoint(scrollFrameBottomRightPoint, scrollFrameBottomRightRelativeTo, scrollFrameBottomRightRelativePoint, scrollFrameBottomRightXOfs, scrollFrameBottomRightYOfs);
-			if f.content.original_width then
-				f.content:SetWidth(f.content.original_width);
-			end
-		end
-	else
-		if not self.scrollBarShown then
-			self.scrollBarShown = true;
-			f.scrollBar:Show();
-			local scrollFrameBottomRightPoint, scrollFrameBottomRightRelativeTo, scrollFrameBottomRightRelativePoint, scrollFrameBottomRightXOfs, scrollFrameBottomRightYOfs = f.scrollFrame:GetPoint(3);
-			scrollFrameBottomRightXOfs = -33;
-			f.scrollFrame:SetPoint(scrollFrameBottomRightPoint, scrollFrameBottomRightRelativeTo, scrollFrameBottomRightRelativePoint, scrollFrameBottomRightXOfs, scrollFrameBottomRightYOfs);
-			if f.content.original_width then
-				f.content:SetWidth(f.content.original_width - 20);
-			end
-		end
-		local value = (offset / (viewheight - height) * 1000);
-		if value > 1000 then value = 1000 end
-		f.scrollBar:SetValue(value);
-		SetScroll(value);
-		if value < 1000 then
-			f.content:ClearAllPoints();
-			f.content:SetPoint("TOPLEFT", 0, offset);
-			f.content:SetPoint("TOPRIGHT", 0, offset);
-			status.offset = offset;
+	for _, option in ipairs(category.options or {}) do
+		local build = BUILDERS[option.type];
+		if (build) then
+			build(option);
 		end
 	end
-	self.updateLock = nil;
+
+	-- defaults for this tab
+	local reset = CreateFrame("Button", nil, content, "UIPanelButtonTemplate");
+	reset:SetSize(140, 22);
+	reset:SetText("Reset " .. category.category);
+	PlaceNext(reset, 4, 22, 24);
+	reset:SetScript("OnClick", function() ResetCategory(category); end);
+	SetTooltip(reset, "Reset " .. category.category, "Reset the options on this tab to their defaults.");
+
+	content:SetHeight(-nextY + 16);
 end
 
-local function FixScrollOnUpdate(frame)
-	frame:SetScript("OnUpdate", nil);
-	FixScroll(frame);
-end
+-- page buttons, top right
+local anchorButton = CreateFrame("Button", nil, f, "UIPanelButtonTemplate");
+anchorButton:SetSize(120, 22);
+anchorButton:SetPoint("TOPRIGHT", f, "TOPRIGHT", -14, -20);
+anchorButton:SetText("Toggle Anchor");
+anchorButton:SetScript("OnClick", function() TipTac:SetShown(not TipTac:IsShown()); end);
+SetTooltip(anchorButton, "Toggle Anchor", "Show or hide " .. PARENT_MOD_NAME .. "'s anchor, to set the position of tooltips using the Normal Anchor.");
 
-local function ScrollFrame_OnMouseWheel(frame, value)
-	MoveScroll(frame, value);
-end
-
-local function ScrollFrame_OnSizeChanged(frame)
-	frame:SetScript("OnUpdate", FixScrollOnUpdate);
-end
-
-f.scrollFrame = CreateFrame("ScrollFrame", nil, f);
-f.scrollFrame.status = {};
-f.scrollFrame:SetPoint("TOP", f.searchBox, "BOTTOM", 0, -8);
-f.scrollFrame:SetPoint("LEFT", f.outline, "RIGHT", 0, 9);
-f.scrollFrame:SetPoint("BOTTOM", f.btnClose, "TOP", 0, 9);
-f.scrollFrame:SetPoint("RIGHT", f, "RIGHT", -13, 0);
-f.scrollFrame:EnableMouseWheel(true);
-f.scrollFrame:SetScript("OnMouseWheel", ScrollFrame_OnMouseWheel);
-f.scrollFrame:SetScript("OnSizeChanged", ScrollFrame_OnSizeChanged);
-
-local function ScrollBar_OnScrollValueChanged(frame, value)
-	SetScroll(value);
-end
-
-f.scrollBar = CreateFrame("Slider", nil, f.scrollFrame, "UIPanelScrollBarTemplate");
-f.scrollBar:SetPoint("TOPLEFT", f.scrollFrame, "TOPRIGHT", 4, -16);
-f.scrollBar:SetPoint("BOTTOMLEFT", f.scrollFrame, "BOTTOMRIGHT", 4, 16);
-f.scrollBar:SetMinMaxValues(0, 1000);
-f.scrollBar:SetValueStep(1);
-f.scrollBar:SetValue(0);
-f.scrollBar:SetWidth(16);
-f.scrollBar:Hide();
--- set the script as the last step, so it doesn't fire yet
-f.scrollBar:SetScript("OnValueChanged", ScrollBar_OnScrollValueChanged);
-
-f.scrollBg = f.scrollBar:CreateTexture(nil, "BACKGROUND");
-f.scrollBg:SetAllPoints(f.scrollBar);
-f.scrollBg:SetColorTexture(0, 0, 0, 0.4);
-
---Container Support
-f.content = CreateFrame("Frame", nil, f.scrollFrame)
-f.content:SetHeight(400);
-f.content:SetScript("OnSizeChanged", function(self, ...)
-	ScrollFrame_OnSizeChanged(f.scrollFrame, ...);
+f:SetScript("OnShow", function()
+	SelectTab(selectedTab);
+	RefreshAll();
 end);
-f.scrollFrame:SetScrollChild(f.content);
-f.content:SetPoint("TOPLEFT");
-f.content:SetPoint("TOPRIGHT");
 
---------------------------------------------------------------------------------------------------------
---                                        Build Option Category                                       --
---------------------------------------------------------------------------------------------------------
+-- register in Options > AddOns
+local category = Settings.RegisterCanvasLayoutCategory(f, PARENT_MOD_NAME);
+Settings.RegisterAddOnCategory(category);
 
--- Get Setting
-local function GetConfigValue(self,var)
-	return cfg[var];
-end
-
--- called when a setting is changed, do not allow
-local function SetConfigValue(self,var,value,noBuildCategoryPage)
-	if (not self.isBuildingOptions) then
-		cfg[var] = value;
-		local TipTac = _G[PARENT_MOD_NAME];
-		TipTac:ApplyConfig();
-		if (not noBuildCategoryPage) then
-			f:BuildCategoryPage(true);
-			f:BuildCategoryList();
-		end
-	end
-end
-
--- determine options to display (search box or current category)
-local function addOptionToCategoryOptionMatchesFn(category, categoryOptionMatches, option)
-	-- check if option has already been added
-	for _, categoryOptionMatch in ipairs(categoryOptionMatches) do
-		if (categoryOptionMatch == option) then
-			return;
-		end
-	end
-	
-	-- add belongsTo option before if available
-	local belongsTo = option.belongsTo;
-	
-	if (belongsTo) then
-		for _, _option in ipairs(category.options or {}) do
-			if (_option.var == belongsTo) then
-				addOptionToCategoryOptionMatchesFn(category, categoryOptionMatches, _option);
-				break;
-			end
-		end
-	end
-	
-	-- add option
-	tinsert(categoryOptionMatches, option);
-end
-
-local function GetOptionsToShow()
-	local optionsToShow;
-	
-	local searchText = f.searchBox:GetText();
-	local searchWords = {};
-	for word in strlower(searchText):gmatch("%S+") do
-		tinsert(searchWords, word);
-	end
-	
-	local searchActive = (#searchWords > 0);
-	
-	if (searchActive) then
-		optionsToShow = {};
-		
-		for _, category in ipairs(f.options) do
-			local categoryOptionMatches = {};
-			
-			for _, option in ipairs(category.options or {}) do
-				if (option.type) and (option.type ~= "Header") and (option.type ~= "TextOnly") then
-					-- use label if present. otherwise call get() for dynamic label.
-					local labelText = (option.label) or (option.get and LibFroznFunctions:RemoveColorsFromText(option.get(f.factory, option.var)));
-					
-					if (labelText) and (labelText ~= "") then
-						local haystack = strlower(labelText .. " " .. (option.tip or ""));
-						local matched = true;
-						
-						for _, word in ipairs(searchWords) do
-							if (not haystack:find(word, 1, true)) then
-								matched = false;
-								break;
-							end
-						end
-						
-						if (matched) then
-							addOptionToCategoryOptionMatchesFn(category, categoryOptionMatches, option);
-						end
-					end
-				end
-			end
-			
-			if (#categoryOptionMatches > 0) then
-				tinsert(optionsToShow, { type = "Header", label = "Category: " .. category.category });
-				
-				for _, _option in ipairs(categoryOptionMatches) do
-					tinsert(optionsToShow, _option);
-				end
-			end
-		end
-		
-		if (#optionsToShow == 0) then
-			optionsToShow = { { type = "TextOnly", label = "No options found." } };
-		end
-	else
-		optionsToShow = f.options[activePage].options;
-	end
-	
-	return optionsToShow, searchActive;
-end
-
--- create new factory instance
-local factory = AzOptionsFactory:New(f.content,GetConfigValue,SetConfigValue);
-f.factory = factory; 
-
--- Build Page
-function f:BuildCategoryPage(noUpdateScrollFrame)
-	-- update scroll frame
-	if (not noUpdateScrollFrame) then
-		f.scrollBar:SetValue(0);
-	end
-
-	-- determine options to display (search box or current category)
-	local optionsToShow, searchActive = GetOptionsToShow();
-	
-	-- build page
-	factory:BuildOptionsPage(optionsToShow, f.content, 0, 0);
-	
-	-- set new content height
-	local contentChildren = { f.content:GetChildren() };
-	local newContentHeight = nil;
-	local contentChildMostBottom = nil;
-	
-	for index, contentChild in ipairs(contentChildren) do
-		local contentChildTopLeftPoint, contentChildTopLeftRelativeTo, contentChildTopLeftRelativePoint, contentChildTopLeftXOfs, contentChildTopLeftYOfs = contentChild:GetPoint();
-		if (contentChild:IsShown()) and ((not newContentHeight) or (-contentChildTopLeftYOfs >= newContentHeight)) then
-			newContentHeight = -contentChildTopLeftYOfs;
-			contentChildMostBottom = contentChild;
-		end
-	end
-	
-	local finalContentHeight = (newContentHeight or 0) + (contentChildMostBottom and contentChildMostBottom:GetHeight() or 0);
-	
-	f.content:SetHeight(finalContentHeight > 0 and finalContentHeight or 1);
-	
-	-- disable btnReset if search active or page has it disabled
-	f.btnReset:SetEnabled((not searchActive) and (not f.options[activePage].btnResetDisabled));
-end
-
---------------------------------------------------------------------------------------------------------
---                                        Options Category List                                       --
---------------------------------------------------------------------------------------------------------
-
-local listButtons = {};
-
-local function CategoryButton_OnClick(self,button)
-	f.searchBox:SetText("");
-	f.searchBox:ClearFocus();
-	if (not listButtons[activePage].check.option) or (GetConfigValue(f.factory, listButtons[activePage].check.option.var)) then
-		listButtons[activePage].text:SetTextColor(1, 0.82, 0);
-	else
-		listButtons[activePage].text:SetTextColor(0.5, 0.5, 0.5);
-	end
-	listButtons[activePage]:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestLogTitleHighlight");
-	listButtons[activePage]:GetHighlightTexture():SetAlpha(0.3);
-	listButtons[activePage]:UnlockHighlight();
-	activePage = self.index;
-	if (not self.check.option) or (GetConfigValue(f.factory, self.check.option.var)) then
-		self.text:SetTextColor(1, 1, 1);
-	else
-		self.text:SetTextColor(0.5, 0.5, 0.5);
-	end
-	self:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight");
-	self:GetHighlightTexture():SetAlpha(0.7);
-	self:LockHighlight();
-	PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);	-- "igMainMenuOptionCheckBoxOn"
-	f:BuildCategoryPage();
-end
-
-local function CheckButton_OnClick(self, button)
-	local checked = (self:GetChecked() and true or false); -- WoD patch made GetChecked() return bool instead of 1/nil
-	local b = self:GetParent();
-	
-	SetConfigValue(f.factory, self.option.var, checked);
-	
-	CategoryButton_OnClick(b, button);
-	
-	if (checked) then
-		b.text:SetTextColor(1, 1, 1);
-	else
-		b.text:SetTextColor(0.5, 0.5, 0.5);
-	end
-end
-
-local function CheckButton_OnEnter(self)
-	if (self.option.tip) then
-		GameTooltip:SetOwner(self,"ANCHOR_RIGHT");
-		GameTooltip:AddLine(self.option.label,1,1,1);
-		GameTooltip:AddLine(self.option.tip,nil,nil,nil,1);
-		GameTooltip:Show();
-	end
-end
-
-local function CheckButton_OnLeave(self)
-	GameTooltip:Hide();
-end
-
-local buttonWidth = (f.outline:GetWidth() - 8);
-local function CreateCategoryButtonEntry(parent)
-	local b = CreateFrame("Button",nil,parent);
-	b:SetSize(buttonWidth,18);
-	b:SetScript("OnClick",CategoryButton_OnClick);
-	b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestLogTitleHighlight");
-	b:GetHighlightTexture():SetAlpha(0.3);
-	b.text = b:CreateFontString(nil,"ARTWORK","GameFontNormal");
-	b.text:SetPoint("LEFT",3,0);
-	b.check = CreateFrame("CheckButton", nil, b);
-	b.check:SetPoint("TOPLEFT", buttonWidth - 22, 2);
-	b.check:SetPoint("BOTTOMRIGHT", 0, -2);
-	b.check:SetScript("OnClick", CheckButton_OnClick);
-	b.check:SetScript("OnEnter", CheckButton_OnEnter);
-	b.check:SetScript("OnLeave", CheckButton_OnLeave);
-	b.check:SetNormalTexture("Interface\\Buttons\\UI-CheckBox-Up");
-	b.check:SetPushedTexture("Interface\\Buttons\\UI-CheckBox-Down");
-	b.check:SetHighlightTexture("Interface\\Buttons\\UI-CheckBox-Highlight");
-	b.check:SetDisabledCheckedTexture("Interface\\Buttons\\UI-CheckBox-Check-Disabled");
-	b.check:SetCheckedTexture("Interface\\Buttons\\UI-CheckBox-Check");
-	b.check:Hide();
-	tinsert(listButtons, b);
-	return b;
-end
-
--- Build Category List
-function f:BuildCategoryList()
-	for index, table in ipairs(f.options) do
-		local button = listButtons[index] or CreateCategoryButtonEntry(f.outline);
-		button.text:SetText(table.category);
-		button.text:SetTextColor(1,0.82,0);
-		if (table.enabled) then
-			local option = table.enabled;
-			local cfgValue = GetConfigValue(f.factory, option.var);
-			button.check.option = option;
-			if (not option.label) then
-				option.label = table.category;
-			end
-			button.check:SetChecked(cfgValue);
-			local enabled = (not option.enabled) or (not not option.enabled(f.factory, button.check, option, cfgValue));
-			button.check:SetEnabled(enabled);
-			if (not cfgValue) or (not enabled) then
-				button.text:SetTextColor(0.5, 0.5, 0.5);
-			end
-			button.check:Show();
-		end
-		button.index = index;
-		if (index == 1) then
-			button:SetPoint("TOPLEFT",f.outline,"TOPLEFT",5,-6);
-		else
-			button:SetPoint("TOPLEFT",listButtons[index - 1],"BOTTOMLEFT");
-		end
-		if (index == activePage) then
-			if (not button.check.option) or (GetConfigValue(f.factory, button.check.option.var)) then
-				button.text:SetTextColor(1, 1, 1);
-			else
-				button.text:SetTextColor(0.5, 0.5, 0.5);
-			end
-			button:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight");
-			button:GetHighlightTexture():SetAlpha(0.7);
-			button:LockHighlight();
-		end
-	end
+-- open the options page (used by /tip, the addon compartment and TipTac:ToggleOptions)
+function f:Open()
+	Settings.OpenToCategory(category:GetID());
 end

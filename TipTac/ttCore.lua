@@ -595,71 +595,21 @@ tt:RegisterEvent("PLAYER_LOGIN");
 --                                       Interface Options                                        --
 ----------------------------------------------------------------------------------------------------
 
--- toggle options
+-- toggle options: TipTacOptions registers the TipTac page in Options > AddOns at login
 function tt:ToggleOptions()
 	local addOnName = MOD_NAME .. "Options";
 	local loaded, reason = C_AddOns.LoadAddOn(addOnName);
 	
 	if (loaded) then
-		local TipTacOptions = _G[addOnName];
-		TipTacOptions:SetShown(not TipTacOptions:IsShown());
+		if (SettingsPanel) and (SettingsPanel:IsShown()) then
+			HideUIPanel(SettingsPanel);
+		else
+			_G[addOnName]:Open();
+		end
 	else
 		tt:AddMessageToChatFrame("{caption:" .. MOD_NAME .. "}: {error:Couldn't open " .. MOD_NAME .. " Options: [{highlight:" .. _G["ADDON_" .. reason] .. "}]. Please make sure the addon is enabled in the character selection screen.}"); -- see UIParentLoadAddOn()
 	end
 end
-
--- register addon category
-LibFroznFunctions:RegisterAddOnCategory((function()
-	local frame = CreateFrame("Frame");
-	
-	frame:SetScript("OnShow", function(self)
-		self.header = self:CreateFontString(nil, "ARTWORK");
-		self.header:SetFontObject(GameFontNormalLarge);
-		self.header:SetPoint("TOPLEFT", 16, -16);
-		self.header:SetText(TT_COLOR.text.caption:WrapTextInColorCode(MOD_NAME));
-		
-		self.vers1 = self:CreateFontString(nil, "ARTWORK");
-		self.vers1:SetFontObject(GameFontHighlight);
-		self.vers1:SetJustifyH("LEFT");
-		self.vers1:SetPoint("TOPLEFT", self.header, "BOTTOMLEFT", 0, -8);
-		self.vers1:SetText(TT_COLOR.text.highlight:WrapTextInColorCode(MOD_NAME .. ": \nWoW: "));
-		
-		self.vers2 = self:CreateFontString(nil, "ARTWORK");
-		self.vers2:SetFontObject(GameFontHighlight);
-		self.vers2:SetJustifyH("LEFT");
-		self.vers2:SetPoint("TOPLEFT", self.vers1, "TOPRIGHT");
-		self.vers2:SetText(C_AddOns.GetAddOnMetadata(MOD_NAME, "Version") .. "\n" .. GetBuildInfo());
-		
-		self.notes = self:CreateFontString(nil, "ARTWORK");
-		self.notes:SetFontObject(GameFontHighlight);
-		self.notes:SetPoint("TOPLEFT", self.vers1, "BOTTOMLEFT", 0, -8);
-		self.notes:SetText(C_AddOns.GetAddOnMetadata(MOD_NAME, "Notes"));
-		
-		self.btnOptions = CreateFrame("Button", nil, self, "UIPanelButtonTemplate");
-		self.btnOptions:SetPoint("TOPLEFT", self.notes, "BOTTOMLEFT", -2, -8);
-		self.btnOptions:SetText(GAMEOPTIONS_MENU);
-		self.btnOptions:SetWidth(math.max(120, self.btnOptions:GetTextWidth() + 20));
-		self.btnOptions:SetScript("OnEnter", function()
-			GameTooltip:SetOwner(self.btnOptions, "ANCHOR_RIGHT");
-			GameTooltip:SetText("Slash commands");
-			GameTooltip:AddLine(TT_COLOR.text.default:WrapTextInColorCode("/tip\n/tiptac"), nil, nil, nil, true);
-			GameTooltip:Show();
-		end);
-		self.btnOptions:SetScript("OnLeave", function()
-			GameTooltip:Hide();
-		end);
-		self.btnOptions:SetScript("OnClick", function()
-			tt:ToggleOptions();
-		end);
-		
-		-- cleanup
-		self:SetScript("OnShow", nil);
-	end);
-	
-	frame:Hide();
-	
-	return frame;
-end)(), MOD_NAME);
 
 -- addon compartment
 function tt:SetAddonCompartmentText(tip)
