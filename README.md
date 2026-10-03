@@ -1,4 +1,4 @@
-# TipTac (Custom)
+# Tooltip Anchors
 
 A stripped-down personal fork of [TipTac Reborn](https://github.com/frozn/TipTac) that keeps only three things:
 

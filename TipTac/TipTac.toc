@@ -1,9 +1,9 @@
 ## Interface: 120100, 16001
 ## Version: 1.0.0
 ## IconTexture: Interface\AddOns\TipTac\media\tiptac_logo
-## Title: TipTac (Custom)
+## Title: Tooltip Anchors
 ## Author: Frozn45, Aezay (Earthen Ring EU); modified by jkloss4
-## Notes: Tooltip anchoring, fading and hiding. Stripped-down fork of TipTac Reborn.
+## Notes: Tooltip anchoring, fading and hiding. Options: /tip. Stripped-down fork of TipTac Reborn.
 ## Category-enUS: User Interface
 ## SavedVariables: TipTac_Config
 ## X-Category: Tooltip

@@ -6,6 +6,7 @@
 
 -- create addon
 local MOD_NAME = ...;
+local DISPLAY_NAME = "Tooltip Anchors"; -- the name shown in game (the folder, frame and saved variables keep "TipTac")
 local tt = CreateFrame("Frame", MOD_NAME, UIParent, BackdropTemplateMixin and "BackdropTemplate");
 tt:Hide();
 
@@ -449,7 +450,7 @@ tt:SetToplevel(true);
 tt:SetClampedToScreen(true);
 
 tt.text = tt:CreateFontString(nil, "ARTWORK", "GameFontHighlight");
-tt.text:SetText(MOD_NAME .. "Anchor");
+tt.text:SetText(DISPLAY_NAME .. " Anchor");
 tt.text:SetPoint("LEFT", 6, 0);
 
 tt.close = CreateFrame("Button", nil, tt, "UIPanelCloseButton");
@@ -607,7 +608,7 @@ function tt:ToggleOptions()
 			_G[addOnName]:Open();
 		end
 	else
-		tt:AddMessageToChatFrame("{caption:" .. MOD_NAME .. "}: {error:Couldn't open " .. MOD_NAME .. " Options: [{highlight:" .. _G["ADDON_" .. reason] .. "}]. Please make sure the addon is enabled in the character selection screen.}"); -- see UIParentLoadAddOn()
+		tt:AddMessageToChatFrame("{caption:" .. DISPLAY_NAME .. "}: {error:Couldn't open " .. DISPLAY_NAME .. " Options: [{highlight:" .. _G["ADDON_" .. reason] .. "}]. Please make sure the addon is enabled in the character selection screen.}"); -- see UIParentLoadAddOn()
 	end
 end
 
@@ -636,7 +637,7 @@ LibFroznFunctions:RegisterNewSlashCommands(MOD_NAME, { "/tip", "/tiptac" }, func
 	if (parameters[1] == "reset") then
 		wipe(cfg);
 		tt:ApplyConfig();
-		tt:AddMessageToChatFrame("{caption:" .. MOD_NAME .. "}: All {highlight:" .. MOD_NAME .. "} settings has been reset to their default values.");
+		tt:AddMessageToChatFrame("{caption:" .. DISPLAY_NAME .. "}: All {highlight:" .. DISPLAY_NAME .. "} settings have been reset to their default values.");
 		return;
 	end
 	

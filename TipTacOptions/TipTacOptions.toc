@@ -1,9 +1,9 @@
 ## Interface: 120100, 16001
 ## Version: 1.0.0
 ## IconTexture: Interface\AddOns\TipTacOptions\media\tiptac_logo
-## Title: TipTacOptions
+## Title: Tooltip Anchors Options
 ## Author: Frozn45, Aezay (Earthen Ring EU); modified by jkloss4
-## Notes: Options page for TipTac (Custom), in Options > AddOns
+## Notes: Options page for Tooltip Anchors, in Options > AddOns
 ## Category-enUS: User Interface
 ## Group: TipTac
 ## Dependencies: TipTac

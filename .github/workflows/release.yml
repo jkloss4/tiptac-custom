@@ -22,7 +22,7 @@ jobs:
 
       - name: Package
         run: |
-          ZIP="TipTac-Custom-${GITHUB_REF_NAME}.zip"
+          ZIP="TooltipAnchors-${GITHUB_REF_NAME}.zip"
           # one release.json metadata entry per flavor, from the first "## Interface:" value of each:
           # 1xxxxx = mainline (retail), 16xxx = forever (WoW: Forever)
           METADATA="" SEEN=""
@@ -41,5 +41,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" "TipTac-Custom-${GITHUB_REF_NAME}.zip" release.json \
+          gh release create "$GITHUB_REF_NAME" "TooltipAnchors-${GITHUB_REF_NAME}.zip" release.json \
             --title "$GITHUB_REF_NAME" --generate-notes

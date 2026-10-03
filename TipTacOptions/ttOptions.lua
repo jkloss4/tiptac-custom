@@ -1,6 +1,7 @@
 -- create addon
 local MOD_NAME, ns = ...;
 local PARENT_MOD_NAME = "TipTac";
+local DISPLAY_NAME = "Tooltip Anchors"; -- the name shown in game
 -- The options page is drawn by SettingsKit (see the end of this file); this frame is TipTacOptions' global, used to open it.
 local f = CreateFrame("Frame", MOD_NAME);
 
@@ -393,7 +394,7 @@ end
 cfg.optionsCollapsed = cfg.optionsCollapsed or {};
 Kit.collapsed = cfg.optionsCollapsed;
 
-local page = Kit.NewPage(PARENT_MOD_NAME, { onDefaults = ResetAll });
+local page = Kit.NewPage(DISPLAY_NAME, { onDefaults = ResetAll });
 
 local tabNames = {};
 for index, category in ipairs(options) do
@@ -412,7 +413,7 @@ for index, category in ipairs(options) do
 	end
 	if (category.category == "Anchors") then
 		list:Button("Toggle Anchor", function() TipTac:SetShown(not TipTac:IsShown()); end,
-			"Show or hide " .. PARENT_MOD_NAME .. "'s anchor, to set the position of tooltips using the Normal Anchor.");
+			"Show or hide the tooltip anchor, to set the position of tooltips using the Normal Anchor.");
 	end
 
 	for _, option in ipairs(category.options or {}) do
