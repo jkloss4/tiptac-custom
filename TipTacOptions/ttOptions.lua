@@ -728,7 +728,7 @@ end
 for index, category in ipairs(options) do
 	local tab = CreateTab(category.category);
 	if (index == 1) then
-		tab:SetPoint("BOTTOMLEFT", pane, "TOPLEFT", 6, -4);
+		tab:SetPoint("BOTTOMLEFT", pane, "TOPLEFT", 6, -1); -- tabs overlap the pane border by 1px, like Ace3
 	else
 		tab:SetPoint("LEFT", tabs[index - 1], "RIGHT", -10, 0);
 	end
